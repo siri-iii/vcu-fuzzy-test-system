@@ -1,18 +1,71 @@
-import { LayoutDashboard, FlaskConical, BarChart3, FileText, Settings } from 'lucide-react';
+import { 
+  LayoutDashboard, FlaskConical, BarChart3, FileText, Settings,
+  BookOpen, Shield, Wrench, Network, Server, Monitor
+} from 'lucide-react';
+import { useRole } from '@/contexts/RoleContext';
 
 interface SidebarProps {
   currentView: string;
-  onNavigate: (view: 'dashboard' | 'tests' | 'analysis' | 'reports' | 'settings') => void;
+  onNavigate: (view: string) => void;
 }
 
 export function Sidebar({ currentView, onNavigate }: SidebarProps) {
-  const menuItems = [
-    { id: 'dashboard', label: '概览', icon: LayoutDashboard },
-    { id: 'tests', label: '测试管理', icon: FlaskConical },
-    { id: 'analysis', label: '结果分析', icon: BarChart3 },
-    { id: 'reports', label: '报告中心', icon: FileText },
-    { id: 'settings', label: '系统配置', icon: Settings },
-  ];
+  const { currentRole, roleColor } = useRole();
+
+  // 根据角色定义不同的菜单项
+  const getMenuItems = () => {
+    const colorClasses = {
+      test_engineer: {
+        active: 'bg-blue-600 text-white shadow-md',
+        activeBar: 'bg-blue-800',
+        hover: 'hover:bg-slate-100 hover:text-slate-900',
+      },
+      process_engineer: {
+        active: 'bg-green-600 text-white shadow-md',
+        activeBar: 'bg-green-800',
+        hover: 'hover:bg-slate-100 hover:text-slate-900',
+      },
+      maintenance_engineer: {
+        active: 'bg-orange-600 text-white shadow-md',
+        activeBar: 'bg-orange-800',
+        hover: 'hover:bg-slate-100 hover:text-slate-900',
+      },
+    };
+
+    const colors = colorClasses[currentRole];
+
+    switch (currentRole) {
+      case 'test_engineer':
+        return [
+          { id: 'dashboard', label: '概览', icon: LayoutDashboard },
+          { id: 'tests', label: '测试管理', icon: FlaskConical },
+          { id: 'monitoring', label: '实时监控', icon: Monitor },
+          { id: 'analysis', label: '结果分析', icon: BarChart3 },
+          { id: 'reports', label: '报告中心', icon: FileText },
+        ].map(item => ({ ...item, colors }));
+
+      case 'process_engineer':
+        return [
+          { id: 'rule-library', label: '规则库管理', icon: BookOpen },
+          { id: 'security-check', label: '安全校验配置', icon: Shield },
+          { id: 'constraint-stats', label: '约束统计', icon: BarChart3 },
+        ].map(item => ({ ...item, colors }));
+
+      case 'maintenance_engineer':
+        return [
+          { id: 'hil-debugging', label: 'HIL联调', icon: Wrench },
+          { id: 'interface-verification', label: '接口验证', icon: Network },
+          { id: 'system-deployment', label: '系统部署', icon: Server },
+          { id: 'system-monitoring', label: '系统监控', icon: Monitor },
+          { id: 'system-settings', label: '系统配置', icon: Settings },
+        ].map(item => ({ ...item, colors }));
+
+      default:
+        return [];
+    }
+  };
+
+  const menuItems = getMenuItems();
 
   return (
     <aside className="w-[240px] bg-slate-50 h-screen fixed left-0 top-[56px] pt-6 shadow-sm border-r border-slate-200">
@@ -23,17 +76,17 @@ export function Sidebar({ currentView, onNavigate }: SidebarProps) {
           return (
             <button
               key={item.id}
-              onClick={() => onNavigate(item.id as any)}
+              onClick={() => onNavigate(item.id)}
               className={`w-full text-left px-4 py-3 mb-1.5 flex items-center gap-3 rounded-lg transition-all duration-200 relative group ${
                 isActive
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                  ? item.colors.active
+                  : `text-slate-700 ${item.colors.hover}`
               }`}
             >
               <Icon className={`w-5 h-5 transition-transform duration-200 ${isActive ? '' : 'group-hover:scale-110'}`} />
               <span className="relative z-10 font-medium">{item.label}</span>
               {isActive && (
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-800 rounded-l-full" />
+                <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 ${item.colors.activeBar} rounded-l-full`} />
               )}
             </button>
           );
