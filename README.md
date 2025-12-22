@@ -61,10 +61,17 @@ npm run dev
 
 ## 📚 文档
 
-- [API测试清单](./API_TEST_CHECKLIST.md)
-- [后端API完成报告](./BACKEND_API_COMPLETE.md)
-- [前端重组建议](./FRONTEND_ROLE_BASED_REDESIGN.md)
-- [Git设置指南](./GIT_SETUP.md)
+### 开发指南（按角色分工）
+
+- [测试工程师开发指南](./DEVELOPMENT_GUIDE_TEST_ENGINEER.md) - 测试执行、监控和结果分析
+- [工艺工程师开发指南](./DEVELOPMENT_GUIDE_PROCESS_ENGINEER.md) - 规则库管理、安全检查和约束统计
+- [台架维护工程师开发指南](./DEVELOPMENT_GUIDE_MAINTENANCE_ENGINEER.md) - HIL联调、接口验证、系统部署和监控
+
+### 技术文档
+
+- [后端README](./backend/README.md) - 后端API文档和说明
+- [北汽接口集成](./backend/BAIC_INTEGRATION.md) - GAN模型与北汽接口对接说明
+- [前端README](./frontend/README.md) - 前端项目说明
 
 ## 👥 角色说明
 

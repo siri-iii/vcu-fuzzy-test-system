@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Save, RefreshCw, Cpu, Sliders, Shield, Database, Users, History, ChevronDown } from 'lucide-react';
+import { Save, RefreshCw, History, ChevronDown, FileCode, GitBranch } from 'lucide-react';
 import { Toggle } from './Toggle';
+import { useRole } from '@/contexts/RoleContext';
 
 export function SystemSettings() {
+  const { currentRole } = useRole();
   const [activeTab, setActiveTab] = useState('engine');
   const [showPermissionMatrix, setShowPermissionMatrix] = useState(false);
   const [showConfigHistory, setShowConfigHistory] = useState(false);
@@ -35,12 +37,72 @@ export function SystemSettings() {
   };
 
   const tabs = [
-    { id: 'engine', label: '引擎配置', icon: Cpu },
-    { id: 'gan', label: 'GAN模型', icon: Sliders },
-    { id: 'constraints', label: '约束器', icon: Shield },
-    { id: 'data', label: '数据资产', icon: Database },
-    { id: 'rbac', label: '权限管理', icon: Users },
+    { id: 'engine', label: '引擎配置', icon: '⚙️', badge: null },
+    { id: 'gan', label: 'GAN模型', icon: '🎛️', badge: 'AI' },
+    { id: 'constraints', label: '约束器', icon: '🛡️', badge: null },
+    { id: 'data', label: '数据资产', icon: '💾', badge: null },
+    { id: 'rbac', label: '权限管理', icon: '👥', badge: null },
   ];
+
+  // 根据角色获取主题色
+  const getThemeColors = () => {
+    switch (currentRole) {
+      case 'test_engineer':
+        return {
+          primary: 'blue',
+          bgGradient: 'from-blue-600 to-blue-700',
+          bgLight: 'bg-blue-50',
+          bgMedium: 'bg-blue-100',
+          border: 'border-blue-200',
+          text: 'text-blue-700',
+          textDark: 'text-blue-900',
+          focus: 'focus:border-blue-400',
+          ring: 'focus:ring-blue-500',
+          iconBg: 'from-blue-500 to-blue-600',
+        };
+      case 'process_engineer':
+        return {
+          primary: 'green',
+          bgGradient: 'from-green-600 to-green-700',
+          bgLight: 'bg-green-50',
+          bgMedium: 'bg-green-100',
+          border: 'border-green-200',
+          text: 'text-green-700',
+          textDark: 'text-green-900',
+          focus: 'focus:border-green-400',
+          ring: 'focus:ring-green-500',
+          iconBg: 'from-green-500 to-green-600',
+        };
+      case 'maintenance_engineer':
+        return {
+          primary: 'orange',
+          bgGradient: 'from-orange-600 to-orange-700',
+          bgLight: 'bg-orange-50',
+          bgMedium: 'bg-orange-100',
+          border: 'border-orange-200',
+          text: 'text-orange-700',
+          textDark: 'text-orange-900',
+          focus: 'focus:border-orange-400',
+          ring: 'focus:ring-orange-500',
+          iconBg: 'from-orange-500 to-orange-600',
+        };
+      default:
+        return {
+          primary: 'blue',
+          bgGradient: 'from-blue-600 to-blue-700',
+          bgLight: 'bg-blue-50',
+          bgMedium: 'bg-blue-100',
+          border: 'border-blue-200',
+          text: 'text-blue-700',
+          textDark: 'text-blue-900',
+          focus: 'focus:border-blue-400',
+          ring: 'focus:ring-blue-500',
+          iconBg: 'from-blue-500 to-blue-600',
+        };
+    }
+  };
+
+  const theme = getThemeColors();
 
   return (
     <div className="p-6 mt-[56px]">
@@ -59,7 +121,7 @@ export function SystemSettings() {
           </button>
           <button
             onClick={handleSave}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:shadow-lg hover:shadow-blue-600/30 transition-all"
+            className={`flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r ${theme.bgGradient} text-white rounded-xl hover:shadow-lg transition-all`}
           >
             <Save className="w-5 h-5" />
             保存
@@ -72,21 +134,103 @@ export function SystemSettings() {
         <div className="col-span-1">
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-3 sticky top-6">
             {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all mb-2 ${
-                    activeTab === tab.id
-                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
-                      : 'text-gray-700 hover:bg-blue-50'
-                  }`}
-                >
-                  <Icon className={`w-5 h-5 ${activeTab === tab.id ? '' : 'text-gray-500'}`} />
-                  <span>{tab.label}</span>
-                </button>
-              );
+              const isActive = activeTab === tab.id;
+              
+              // 根据角色确定hover背景色
+              const hoverBgColor = currentRole === 'test_engineer' 
+                ? '#eff6ff' 
+                : currentRole === 'process_engineer'
+                ? '#f0fdf4'
+                : '#fff7ed';
+              
+              // 根据角色确定激活状态的背景渐变
+              const activeBgGradient = currentRole === 'test_engineer'
+                ? 'linear-gradient(to right, #2563eb, #1d4ed8)'
+                : currentRole === 'process_engineer'
+                ? 'linear-gradient(to right, #16a34a, #15803d)'
+                : 'linear-gradient(to right, #ea580c, #c2410c)';
+              
+              if (isActive) {
+                // 激活状态：完全使用内联样式
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all mb-2 shadow-lg"
+                    type="button"
+                    style={{ 
+                      background: activeBgGradient,
+                      color: 'white'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                    onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                  >
+                    <div 
+                      className="flex items-center justify-center w-8 h-8 rounded-lg"
+                      style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
+                    >
+                      <span className="text-lg">{tab.icon}</span>
+                    </div>
+                    <span 
+                      className="flex-1 text-left font-medium"
+                      style={{ 
+                        color: 'white', 
+                        display: 'block',
+                        visibility: 'visible',
+                        opacity: 1
+                      }}
+                    >
+                      {tab.label}
+                    </span>
+                    {tab.badge && (
+                      <span 
+                        className="px-2 py-0.5 rounded-full text-xs font-medium"
+                        style={{ backgroundColor: 'rgba(255, 255, 255, 0.3)', color: 'white' }}
+                      >
+                        {tab.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              } else {
+                // 非激活状态：完全使用内联样式
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all mb-2"
+                    type="button"
+                    style={{ 
+                      backgroundColor: 'transparent',
+                      color: '#374151'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = hoverBgColor}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <div 
+                      className={`flex items-center justify-center w-8 h-8 rounded-lg border ${theme.bgLight} ${theme.border}`}
+                    >
+                      <span className="text-lg">{tab.icon}</span>
+                    </div>
+                    <span 
+                      className="flex-1 text-left font-medium"
+                      style={{ 
+                        color: '#374151', 
+                        display: 'block',
+                        visibility: 'visible',
+                        opacity: 1
+                      }}
+                    >
+                      {tab.label}
+                    </span>
+                    {tab.badge && (
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${theme.bgMedium} ${theme.text}`}>
+                        {tab.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              }
             })}
           </div>
         </div>
@@ -97,8 +241,8 @@ export function SystemSettings() {
             {activeTab === 'engine' && (
               <div className="space-y-6">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
-                    <Cpu className="w-6 h-6 text-white" />
+                  <div className={`w-12 h-12 bg-gradient-to-br ${theme.iconBg} rounded-xl flex items-center justify-center text-2xl`}>
+                    ⚙️
                   </div>
                   <div>
                     <h3 className="text-xl">双模引擎配置</h3>
@@ -107,16 +251,16 @@ export function SystemSettings() {
                 </div>
 
                 <div className="space-y-4">
-                  <div className="p-5 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl border border-blue-200">
+                  <div className={`p-5 bg-gradient-to-br ${theme.bgLight} to-${theme.primary}-100/50 rounded-xl border ${theme.border}`}>
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <div className="font-medium text-blue-900 mb-1">传统模糊测试引擎</div>
-                        <div className="text-sm text-blue-700">基于规则的变异算法</div>
+                        <div className={`font-medium ${theme.textDark} mb-1`}>传统模糊测试引擎</div>
+                        <div className={`text-sm ${theme.text}`}>基于规则的变异算法</div>
                       </div>
                       <Toggle
                         checked={settings.traditionalEngineEnabled}
-                        onChange={(e) =>
-                          setSettings({ ...settings, traditionalEngineEnabled: e.target.checked })
+                        onChange={(checked) =>
+                          setSettings({ ...settings, traditionalEngineEnabled: checked })
                         }
                       />
                     </div>
@@ -127,18 +271,18 @@ export function SystemSettings() {
                       <div className="flex-1">
                         <div className="font-medium text-green-900 mb-1 flex items-center gap-2">
                           GAN智能引擎
-                          <span className="px-2 py-0.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs rounded-full">AI</span>
+                          <span className={`px-2 py-0.5 bg-gradient-to-r ${theme.iconBg} text-white text-xs rounded-full`}>AI</span>
                         </div>
                         <div className="text-sm text-green-700">条件GAN生成 · 智能边界探索</div>
                       </div>
                       <Toggle
                         checked={settings.ganEngineEnabled}
-                        onChange={(e) => setSettings({ ...settings, ganEngineEnabled: e.target.checked })}
+                        onChange={(checked) => setSettings({ ...settings, ganEngineEnabled: checked })}
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
                       <label className="block mb-3 text-gray-700 font-medium">最大并发测试数</label>
                       <input
@@ -147,7 +291,7 @@ export function SystemSettings() {
                         onChange={(e) =>
                           setSettings({ ...settings, maxConcurrentTests: parseInt(e.target.value) })
                         }
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-400 transition-colors"
+                        className={`w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none ${theme.focus} transition-colors`}
                       />
                     </div>
 
@@ -157,7 +301,7 @@ export function SystemSettings() {
                         type="number"
                         value={settings.defaultTimeout}
                         onChange={(e) => setSettings({ ...settings, defaultTimeout: parseInt(e.target.value) })}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-400 transition-colors"
+                        className={`w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none ${theme.focus} transition-colors`}
                       />
                     </div>
 
@@ -169,7 +313,7 @@ export function SystemSettings() {
                         onChange={(e) =>
                           setSettings({ ...settings, maxRetries: parseInt(e.target.value) || 0 })
                         }
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-400 transition-colors"
+                        className={`w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none ${theme.focus} transition-colors`}
                       />
                     </div>
                   </div>
@@ -180,8 +324,8 @@ export function SystemSettings() {
             {activeTab === 'gan' && (
               <div className="space-y-6">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center">
-                    <Sliders className="w-6 h-6 text-white" />
+                  <div className={`w-12 h-12 bg-gradient-to-br ${theme.bgGradient} rounded-xl flex items-center justify-center text-2xl`}>
+                    🎛️
                   </div>
                   <div>
                     <h3 className="text-xl">GAN模型配置</h3>
@@ -190,12 +334,12 @@ export function SystemSettings() {
                 </div>
 
                 <div className="space-y-4">
-                  <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl border border-blue-200">
-                    <label className="block mb-3 text-blue-900 font-medium">模型版本</label>
+                  <div className="p-4 bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-xl border border-orange-200">
+                    <label className="block mb-3 text-orange-900 font-medium">模型版本</label>
                     <select
                       value={settings.ganModelVersion}
                       onChange={(e) => setSettings({ ...settings, ganModelVersion: e.target.value })}
-                      className="w-full px-4 py-3 border-2 border-blue-200 rounded-xl focus:outline-none focus:border-blue-400 transition-colors bg-white"
+                      className="w-full px-4 py-3 border-2 border-orange-200 rounded-xl focus:outline-none focus:border-orange-400 transition-colors bg-white"
                     >
                       <option value="v1.0">Conditional GAN v1.0</option>
                       <option value="v2.0">Conditional GAN v2.0 (推荐)</option>
@@ -209,14 +353,14 @@ export function SystemSettings() {
                       type="number"
                       value={settings.ganFidThreshold}
                       onChange={(e) => setSettings({ ...settings, ganFidThreshold: parseInt(e.target.value) })}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-400 transition-colors"
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-400 transition-colors"
                     />
-                    <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <div className="text-sm text-blue-800 mb-2">当前性能指标：</div>
+                    <div className="mt-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                      <div className="text-sm text-orange-800 mb-2">当前性能指标：</div>
                       <div className="grid grid-cols-3 gap-2 text-xs">
-                        <div className="text-blue-700">FID: 35.2</div>
-                        <div className="text-blue-700">KL: 0.15</div>
-                        <div className="text-blue-700">JS: 0.08</div>
+                        <div className="text-orange-700">FID: 35.2</div>
+                        <div className="text-orange-700">KL: 0.15</div>
+                        <div className="text-orange-700">JS: 0.08</div>
                       </div>
                     </div>
                   </div>
@@ -227,8 +371,8 @@ export function SystemSettings() {
             {activeTab === 'constraints' && (
               <div className="space-y-6">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center">
-                    <Shield className="w-6 h-6 text-white" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-orange-600 to-orange-700 rounded-xl flex items-center justify-center text-2xl">
+                    🛡️
                   </div>
                   <div>
                     <h3 className="text-xl">统一约束器</h3>
@@ -245,7 +389,7 @@ export function SystemSettings() {
                       </div>
                       <Toggle
                         checked={settings.enableConstraints}
-                        onChange={(e) => setSettings({ ...settings, enableConstraints: e.target.checked })}
+                        onChange={(checked) => setSettings({ ...settings, enableConstraints: checked })}
                       />
                     </div>
                   </div>
@@ -258,7 +402,7 @@ export function SystemSettings() {
                           type="checkbox"
                           checked={settings.safetyBlacklist}
                           onChange={(e) => setSettings({ ...settings, safetyBlacklist: e.target.checked })}
-                          className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          className="w-5 h-5 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
                         />
                         <div>
                           <div className="font-medium text-sm">功能安全禁发列表</div>
@@ -270,7 +414,7 @@ export function SystemSettings() {
                           type="checkbox"
                           checked={settings.rangeCheck}
                           onChange={(e) => setSettings({ ...settings, rangeCheck: e.target.checked })}
-                          className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          className="w-5 h-5 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
                         />
                         <div>
                           <div className="font-medium text-sm">数值物理范围检查</div>
@@ -280,20 +424,20 @@ export function SystemSettings() {
                     </div>
                   </div>
 
-                  <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
-                    <div className="text-sm text-blue-800 mb-2">今日拦截统计：</div>
+                  <div className="p-4 bg-orange-50 rounded-xl border border-orange-200">
+                    <div className="text-sm text-orange-800 mb-2">今日拦截统计：</div>
                     <div className="grid grid-cols-3 gap-4 text-center">
                       <div>
-                        <div className="text-2xl font-medium text-blue-700">2,450</div>
-                        <div className="text-xs text-blue-600">拦截总数</div>
+                        <div className="text-2xl font-medium text-orange-700">2,450</div>
+                        <div className="text-xs text-orange-600">拦截总数</div>
                       </div>
                       <div>
                         <div className="text-2xl font-medium text-green-700">73.5%</div>
                         <div className="text-xs text-green-600">通过率</div>
                       </div>
                       <div>
-                        <div className="text-2xl font-medium text-orange-700">0.8ms</div>
-                        <div className="text-xs text-orange-600">平均延</div>
+                        <div className="text-2xl font-medium text-orange-800">0.8ms</div>
+                        <div className="text-xs text-orange-700">平均延</div>
                       </div>
                     </div>
                   </div>
@@ -304,8 +448,8 @@ export function SystemSettings() {
             {activeTab === 'data' && (
               <div className="space-y-6">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center">
-                    <Database className="w-6 h-6 text-white" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-orange-600 to-orange-700 rounded-xl flex items-center justify-center text-2xl">
+                    💾
                   </div>
                   <div>
                     <h3 className="text-xl">数据资产管理</h3>
@@ -315,24 +459,24 @@ export function SystemSettings() {
 
                 <div className="space-y-4">
                   {/* DBC Files */}
-                  <div className="p-5 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl border border-blue-200">
+                  <div className="p-5 bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-xl border border-orange-200">
                     <div className="flex items-center gap-3 mb-3">
-                      <FileCode className="w-5 h-5 text-blue-700" />
-                      <h4 className="font-medium text-blue-900">DBC文件</h4>
+                      <FileCode className="w-5 h-5 text-orange-700" />
+                      <h4 className="font-medium text-orange-900">DBC文件</h4>
                     </div>
-                    <div className="space-y-2 text-sm text-blue-800">
+                    <div className="space-y-2 text-sm text-orange-800">
                       <div className="flex justify-between">
                         <span>VCU_CAN_v2.3.dbc</span>
                         <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">使用中</span>
                       </div>
-                      <div className="text-xs text-blue-600">信号: 156 · 报文: 42</div>
+                      <div className="text-xs text-orange-600">信号: 156 · 报文: 42</div>
                     </div>
                   </div>
 
                   {/* Training Data */}
                   <div className="p-5 bg-gradient-to-br from-green-50 to-green-100/50 rounded-xl border border-green-200">
                     <div className="flex items-center gap-3 mb-3">
-                      <Database className="w-5 h-5 text-green-700" />
+                      <span className="text-lg">💾</span>
                       <h4 className="font-medium text-green-900">训练数据集</h4>
                     </div>
                     <div className="space-y-2 text-sm text-green-800">
@@ -343,17 +487,17 @@ export function SystemSettings() {
                   </div>
 
                   {/* Model Versions */}
-                  <div className="p-5 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl border border-blue-200">
+                  <div className="p-5 bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-xl border border-orange-200">
                     <div className="flex items-center gap-3 mb-3">
-                      <GitBranch className="w-5 h-5 text-blue-700" />
-                      <h4 className="font-medium text-blue-900">GAN模型版本</h4>
+                      <GitBranch className="w-5 h-5 text-orange-700" />
+                      <h4 className="font-medium text-orange-900">GAN模型版本</h4>
                     </div>
-                    <div className="space-y-2 text-sm text-blue-800">
+                    <div className="space-y-2 text-sm text-orange-800">
                       <div className="flex justify-between">
                         <span>Conditional GAN v2.0</span>
                         <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">生产</span>
                       </div>
-                      <div className="text-xs text-blue-600">FID: 35.2 · 训练: 2025-11-15</div>
+                      <div className="text-xs text-orange-600">FID: 35.2 · 训练: 2025-11-15</div>
                     </div>
                   </div>
                 </div>
@@ -363,8 +507,8 @@ export function SystemSettings() {
             {activeTab === 'rbac' && (
               <div className="space-y-6">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center">
-                    <Users className="w-6 h-6 text-white" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-orange-600 to-orange-700 rounded-xl flex items-center justify-center text-2xl">
+                    👥
                   </div>
                   <div>
                     <h3 className="text-xl">RBAC权限管理</h3>
@@ -374,8 +518,8 @@ export function SystemSettings() {
 
                 <div className="space-y-4">
                   {/* 角色定义 - 默认展开 */}
-                  <div className="p-5 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl border border-blue-200">
-                    <div className="font-medium text-blue-900 mb-3">角色定义（7个专业角色）</div>
+                  <div className="p-5 bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-xl border border-orange-200">
+                    <div className="font-medium text-orange-900 mb-3">角色定义（7个专业角色）</div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="flex items-center justify-between p-3 bg-white rounded-lg">
                         <div className="flex items-center gap-3">
@@ -467,7 +611,7 @@ export function SystemSettings() {
                         <span className="font-medium text-gray-900">权限矩阵</span>
                         <span className="text-sm text-gray-500">(7个角色 × 10项权限)</span>
                       </div>
-                      <span className="text-sm text-blue-600">点击{showPermissionMatrix ? '收起' : '展开'}</span>
+                      <span className="text-sm text-orange-600">点击{showPermissionMatrix ? '收起' : '展开'}</span>
                     </button>
                     
                     {showPermissionMatrix && (
@@ -500,7 +644,7 @@ export function SystemSettings() {
                               { name: '查看日志', roles: [true, true, true, true, true, true, true] },
                               { name: '审计追溯', roles: [true, true, false, false, false, false, true] },
                             ].map((perm, idx) => (
-                              <tr key={idx} className="border-b border-gray-200 hover:bg-blue-50/30">
+                              <tr key={idx} className="border-b border-gray-200 hover:bg-orange-50/30">
                                 <td className="py-2 px-2 font-medium">{perm.name}</td>
                                 {perm.roles.map((hasPermission, roleIdx) => (
                                   <td key={roleIdx} className="py-2 px-2 text-center">
@@ -530,7 +674,7 @@ export function SystemSettings() {
                         <span className="font-medium text-gray-900">配置变更历史</span>
                         <span className="text-sm text-gray-500">(基线版本管理)</span>
                       </div>
-                      <span className="text-sm text-blue-600">最近5次变更</span>
+                      <span className="text-sm text-orange-600">最近5次变更</span>
                     </button>
                     
                     {showConfigHistory && (
@@ -545,7 +689,7 @@ export function SystemSettings() {
                           <div key={idx} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
                             <div className="flex items-center gap-3">
                               <div className="flex flex-col items-center">
-                                <History className="w-5 h-5 text-blue-600" />
+                                <History className="w-5 h-5 text-orange-600" />
                                 <span className="text-xs text-gray-500 mt-1">{log.version}</span>
                               </div>
                               <div>
@@ -570,12 +714,12 @@ export function SystemSettings() {
                   </div>
 
                   {/* 权限拦截统计 */}
-                  <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
-                    <div className="text-sm text-blue-800 mb-2">今日权限拦截统计：</div>
+                  <div className="p-4 bg-orange-50 rounded-xl border border-orange-200">
+                    <div className="text-sm text-orange-800 mb-2">今日权限拦截统计：</div>
                     <div className="grid grid-cols-4 gap-4 text-center">
                       <div>
-                        <div className="text-2xl font-medium text-blue-700">2</div>
-                        <div className="text-xs text-blue-600">拦截次数</div>
+                        <div className="text-2xl font-medium text-orange-700">2</div>
+                        <div className="text-xs text-orange-600">拦截次数</div>
                       </div>
                       <div>
                         <div className="text-2xl font-medium text-green-700">100%</div>
