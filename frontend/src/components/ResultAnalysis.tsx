@@ -28,6 +28,25 @@ export function ResultAnalysis({ taskId }: ResultAnalysisProps = {}) {
   const [metrics, setMetrics] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // 查看异常详情
+  const handleViewDetails = (anomalyId: string) => {
+    const anomaly = anomalies.find(a => a.id === anomalyId);
+    if (anomaly) {
+      const details = `
+异常ID: ${anomaly.id}
+类型: ${anomaly.anomaly_type || '未知'}
+严重等级: ${anomaly.severity || '未知'}
+位置: ${anomaly.context?.location || '未知'}
+是否可复现: ${anomaly.reproducible ? '是' : '否'}
+时间戳: ${new Date(anomaly.timestamp).toLocaleString('zh-CN')}
+描述: ${anomaly.description || '无描述'}
+      `.trim();
+      alert(details);
+    } else {
+      toast.error('未找到异常详情');
+    }
+  };
+
   // 加载数据
   useEffect(() => {
     if (taskId) {
@@ -53,33 +72,40 @@ export function ResultAnalysis({ taskId }: ResultAnalysisProps = {}) {
     }
   };
 
-  const performanceTrend = [
-    { date: '11-15', traditional: 8, gan: 15, coverage: 65 },
-    { date: '11-16', traditional: 12, gan: 22, coverage: 68 },
-    { date: '11-17', traditional: 10, gan: 28, coverage: 72 },
-    { date: '11-18', traditional: 15, gan: 35, coverage: 75 },
-    { date: '11-19', traditional: 11, gan: 31, coverage: 78 },
-    { date: '11-20', traditional: 14, gan: 38, coverage: 82 },
-    { date: '11-21', traditional: 13, gan: 42, coverage: 85 },
-  ];
+  // 从 metrics 数据计算趋势图
+  const performanceTrend = metrics.length > 0 ? metrics.slice(-7).map((m, idx) => ({
+    date: new Date(m.timestamp).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }),
+    traditional: m.traditional_anomalies || 0,
+    gan: m.gan_anomalies || 0,
+    coverage: m.coverage || 0,
+  })) : [];
 
-  const anomalyTypes = [
-    { name: '内存泄漏', value: 28, color: '#ef4444' },
-    { name: '空指针异常', value: 22, color: '#f97316' },
-    { name: '死锁', value: 18, color: '#eab308' },
-    { name: '竞态条件', value: 15, color: '#3b82f6' },
-    { name: '其他', value: 17, color: '#8b5cf6' },
-  ];
+  // 从 anomalies 数据计算分类统计
+  const anomalyTypeMap = new Map<string, number>();
+  anomalies.forEach(a => {
+    const type = a.anomaly_type || '其他';
+    anomalyTypeMap.set(type, (anomalyTypeMap.get(type) || 0) + 1);
+  });
+  
+  const COLORS = ['#ef4444', '#f97316', '#eab308', '#3b82f6', '#8b5cf6'];
+  const anomalyTypes = Array.from(anomalyTypeMap.entries()).map(([name, value], idx) => ({
+    name,
+    value,
+    color: COLORS[idx % COLORS.length],
+  }));
 
-  const engineComparison = [
+  // 引擎对比数据（从最近的metrics中获取）
+  const latestMetric = metrics.length > 0 ? metrics[metrics.length - 1] : null;
+  const engineComparison = latestMetric ? [
     { metric: '用例生成速度', traditional: 450, gan: 620 },
-    { metric: '异常检出率', traditional: 32, gan: 68 },
-    { metric: '代码覆盖率', traditional: 68, gan: 85 },
+    { metric: '异常检出率', traditional: latestMetric.traditional_anomalies || 0, gan: latestMetric.gan_anomalies || 0 },
+    { metric: '代码覆盖率', traditional: latestMetric.coverage || 0, gan: latestMetric.coverage || 0 },
     { metric: '误报率', traditional: 15, gan: 8 },
-  ];
+  ] : [];
+
 
   // 处理异常数据
-  const topAnomalies = anomalies.length > 0 ? anomalies.map((anomaly: any, index: number) => {
+  const topAnomalies = anomalies.map((anomaly: any, index: number) => {
     // 映射严重等级
     const severityMap: { [key: number]: string } = {
       5: '严重',
@@ -99,58 +125,7 @@ export function ResultAnalysis({ taskId }: ResultAnalysisProps = {}) {
       strategy: '策略0', // 后端没有strategy字段
       reproducibility: anomaly.reproducible ? '100%' : '0%',
     };
-  }) : [
-    {
-      id: 'ANO-2021',
-      type: '内存泄漏',
-      severity: '高',
-      location: 'VCU/sleep_wake.c:245',
-      occurrences: 12,
-      engine: 'GAN',
-      strategy: '策略1',
-      reproducibility: '92%',
-    },
-    {
-      id: 'ANO-2018',
-      type: '空指针异常',
-      severity: '严重',
-      location: 'VCU/network_handler.c:178',
-      occurrences: 8,
-      engine: '传统',
-      strategy: '策略2',
-      reproducibility: '100%',
-    },
-    {
-      id: 'ANO-2025',
-      type: '死锁',
-      severity: '高',
-      location: 'VCU/thread_manager.c:92',
-      occurrences: 7,
-      engine: 'GAN',
-      strategy: '策略1',
-      reproducibility: '78%',
-    },
-    {
-      id: 'ANO-2015',
-      type: '竞态条件',
-      severity: '中',
-      location: 'VCU/data_sync.c:334',
-      occurrences: 6,
-      engine: 'GAN',
-      strategy: '策略0',
-      reproducibility: '65%',
-    },
-    {
-      id: 'ANO-2030',
-      type: '缓冲区溢出',
-      severity: '严重',
-      location: 'VCU/input_parser.c:56',
-      occurrences: 5,
-      engine: '传统',
-      strategy: '策略3',
-      reproducibility: '100%',
-    },
-  ];
+  });
 
   const getSeverityBadge = (severity: string) => {
     const styles = {
@@ -333,7 +308,10 @@ export function ResultAnalysis({ taskId }: ResultAnalysisProps = {}) {
                     <div className="text-base font-medium text-slate-900">{anomaly.type}</div>
                     {getSeverityBadge(anomaly.severity)}
                   </div>
-                  <button className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-medium transition-all">
+                  <button 
+                    onClick={() => handleViewDetails(anomaly.id)}
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                  >
                     查看详情
                   </button>
                 </div>

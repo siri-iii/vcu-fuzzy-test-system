@@ -55,65 +55,6 @@ class TestPlanService:
     async def get_test_plans(self, skip: int = 0, limit: int = 100) -> List[TestPlanResponse]:
         """获取测试计划列表"""
         plans_data = await self.db.get_test_plans(skip=skip, limit=limit)
-        
-        # 如果数据库为空，返回模拟数据
-        if not plans_data:
-            from api.models.schemas import TestMode, TraditionalTestConfig, GANTestConfig, ConstraintConfig
-            mock_plans = [
-                {
-                    "id": "plan-001",
-                    "name": "VCU唤醒-休眠基础测试",
-                    "description": "针对VCU控制器的唤醒和休眠流程进行基础测试",
-                    "test_mode": TestMode.BOTH.value,
-                    "traditional_config": TraditionalTestConfig(enabled=True, intensity=5).dict(),
-                    "gan_config": GANTestConfig(enabled=True, model_version="v1.0", sampling_temperature=1.0).dict(),
-                    "constraint_config": ConstraintConfig(
-                        rate_limit=100.0,
-                        crc_check=True,
-                        dlc_check=True
-                    ).dict(),
-                    "baseline_log_path": None,
-                    "created_at": datetime.now().isoformat(),
-                    "updated_at": datetime.now().isoformat(),
-                    "status": "active"
-                },
-                {
-                    "id": "plan-002",
-                    "name": "传统模糊测试专项",
-                    "description": "使用传统变异规则进行边界值测试",
-                    "test_mode": TestMode.TRADITIONAL.value,
-                    "traditional_config": TraditionalTestConfig(enabled=True, intensity=8, max_cases=1000).dict(),
-                    "gan_config": None,
-                    "constraint_config": ConstraintConfig(
-                        rate_limit=150.0,
-                        crc_check=True,
-                        dlc_check=True
-                    ).dict(),
-                    "baseline_log_path": None,
-                    "created_at": datetime.now().isoformat(),
-                    "updated_at": datetime.now().isoformat(),
-                    "status": "draft"
-                },
-                {
-                    "id": "plan-003",
-                    "name": "GAN智能测试专项",
-                    "description": "使用GAN模型生成智能测试用例",
-                    "test_mode": TestMode.GAN.value,
-                    "traditional_config": None,
-                    "gan_config": GANTestConfig(enabled=True, model_version="v1.2", sampling_temperature=1.2, max_cases=500).dict(),
-                    "constraint_config": ConstraintConfig(
-                        rate_limit=80.0,
-                        crc_check=True,
-                        dlc_check=True
-                    ).dict(),
-                    "baseline_log_path": None,
-                    "created_at": datetime.now().isoformat(),
-                    "updated_at": datetime.now().isoformat(),
-                    "status": "active"
-                }
-            ]
-            return [TestPlanResponse(**plan) for plan in mock_plans]
-        
         return [TestPlanResponse(**plan) for plan in plans_data]
     
     async def update_test_plan(self, plan_id: str, plan: TestPlanCreate) -> Optional[TestPlanResponse]:
@@ -150,8 +91,20 @@ class TestPlanService:
         return TestPlanResponse(**plan_data)
     
     async def delete_test_plan(self, plan_id: str) -> bool:
-        """删除测试计划"""
-        return await self.db.delete_test_plan(plan_id)
+        """删除测试计划（级联删除相关任务）"""
+        # 删除数据库记录（会级联删除相关任务）
+        result = await self.db.delete_test_plan(plan_id)
+        
+        # 删除文件备份
+        if result:
+            plan_file = os.path.join(self.plans_dir, f"{plan_id}.json")
+            if os.path.exists(plan_file):
+                try:
+                    os.remove(plan_file)
+                except Exception as e:
+                    print(f"删除计划文件失败: {e}")
+        
+        return result
 
 
 

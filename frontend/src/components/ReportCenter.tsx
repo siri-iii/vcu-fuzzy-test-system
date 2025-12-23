@@ -78,36 +78,7 @@ export function ReportCenter() {
     }
   };
 
-  // 模拟数据作为fallback
-  const mockReports = [
-    {
-      id: 'RPT-001',
-      name: 'VCU休眠唤醒测试综合报告',
-      date: '2025-11-21',
-      testPlan: 'TP-2045',
-      coverage: 87,
-      anomalies: 12,
-      type: 'comprehensive',
-    },
-    {
-      id: 'RPT-002',
-      name: 'GAN vs 传统引擎对比分析',
-      date: '2025-11-20',
-      testPlan: 'TP-2044',
-      coverage: 92,
-      anomalies: 18,
-      type: 'comparison',
-    },
-    {
-      id: 'RPT-003',
-      name: '约束器拦截统计周报',
-      date: '2025-11-18',
-      testPlan: 'Multiple',
-      coverage: 95,
-      anomalies: 0,
-      type: 'statistics',
-    },
-  ];
+
 
   return (
     <div className="p-6 mt-[56px]">
@@ -170,7 +141,7 @@ export function ReportCenter() {
         <div className="text-center py-12 text-gray-500">加载中...</div>
       ) : (
       <div className="space-y-5">
-        {(reports.length > 0 ? reports : mockReports).map((report) => (
+        {reports.map((report) => (
           <div
             key={report.id}
             className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:border-blue-300 transition-all animate-fade-in"
