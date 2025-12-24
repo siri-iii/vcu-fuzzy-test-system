@@ -10,8 +10,9 @@ from typing import List, Dict
 import asyncio
 import json
 
-from api.routers import test_plans, test_tasks, reports, constraints, monitoring, gan
+from api.routers import test_plans, test_tasks, reports, constraints, monitoring, gan, rules,security
 from api.websocket_manager import WebSocketManager
+
 
 app = FastAPI(
     title="VCU智能模糊测试系统API",
@@ -35,6 +36,8 @@ app.include_router(reports.router, prefix="/api", tags=["测试报告"])
 app.include_router(constraints.router, prefix="/api", tags=["约束管理"])
 app.include_router(monitoring.router, prefix="/api", tags=["监控"])
 app.include_router(gan.router, prefix="/api", tags=["GAN测试"])
+app.include_router(rules.router, prefix="/api", tags=["规则库"])
+app.include_router(security.router, prefix="/api", tags=["安全检查"])
 
 # WebSocket管理器
 ws_manager = WebSocketManager()

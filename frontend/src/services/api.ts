@@ -124,3 +124,57 @@ export const constraintAPI = {
   getStats: (taskId: string) => api.get(`/api/test-tasks/${taskId}/constraints`),
 }
 
+// ================= 规则库 API =================
+export const ruleAPI = {
+  // 获取所有规则
+  getAll: () => api.get('/api/rules'),
+
+  // 获取单个规则
+  getById: (id: string) => api.get(`/api/rules/${id}`),
+
+  // 创建规则
+  create: (rule: any) => api.post('/api/rules', rule),
+
+  // 更新规则
+  update: (id: string, rule: any) => api.put(`/api/rules/${id}`, rule),
+
+  // 删除规则
+  delete: (id: string) => api.delete(`/api/rules/${id}`),
+
+  // 启用规则
+  enable: (id: string) => api.post(`/api/rules/${id}/enable`),
+
+  // 禁用规则
+  disable: (id: string) => api.post(`/api/rules/${id}/disable`),
+
+  // 导入规则（JSON 文件）
+  import: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post('/api/rules/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+
+  // 导出规则（返回 JSON 数组）
+  export: () => api.get('/api/rules/export'),
+}
+
+// ================= 安全检查 API =================
+export const securityAPI = {
+  // 获取安全检查配置
+  getConfig: () => api.get('/api/security/config'),
+
+  // 更新安全检查配置
+  updateConfig: (config: any) => api.put('/api/security/config', config),
+
+  // 执行安全检查
+  verify: (data: {
+    task_id: string
+    payload: any
+  }) => api.post('/api/security/verify', data),
+
+  // 获取安全审计日志
+  getAudit: (limit?: number) =>
+    api.get('/api/security/audit', { params: { limit } }),
+}

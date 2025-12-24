@@ -166,5 +166,62 @@ class TestReportResponse(BaseModel):
     generated_at: datetime
     comparison: Optional[MethodComparison] = None
 
+# 规则
+class RuleType(str, Enum):
+    whitelist = "whitelist"
+    blacklist = "blacklist"
+    range = "range"
+    crc = "crc"
+    dlc = "dlc"
+    rate = "rate"
 
+class RulePriority(str, Enum):
+    high = "high"
+    medium = "medium"
+    low = "low"
+
+class RuleCreate(BaseModel):
+    name: str
+    type: RuleType
+    enabled: bool = True
+    priority: RulePriority = RulePriority.medium
+    description: str
+    content: Dict[str, Any]
+
+class RuleUpdate(BaseModel):
+    name: Optional[str]
+    enabled: Optional[bool]
+    priority: Optional[RulePriority]
+    description: Optional[str]
+    content: Optional[Dict[str, Any]]
+
+class RuleResponse(BaseModel):
+    id: str
+    name: str
+    type: RuleType
+    enabled: bool
+    priority: RulePriority
+    description: str
+    content: Dict[str, Any]
+    version: str
+    created_at: datetime
+    updated_at: datetime
+
+#安全
+class SecurityConfig(BaseModel):
+    dual_layer_enabled: bool
+    layer1_rules: List[str]
+    layer2_rules: List[str]
+    audit_enabled: bool
+    alert_threshold: int
+
+class SecurityVerifyRequest(BaseModel):
+    task_id: str
+    payload: dict # 前端传入的待验证内容（测试用例/消息/信号等）
+
+class SecurityAuditRecord(BaseModel):
+    id: str
+    event_type: str
+    detail: str
+    created_at: str
 
