@@ -405,9 +405,7 @@ class Database:
             anomalies.append(data)
         
         return anomalies
-<<<<<<< HEAD
-    @async_db_operation 
-=======
+
     
     @async_db_operation
     def save_anomaly(self, anomaly_data: Dict[str, Any]):
@@ -437,7 +435,6 @@ class Database:
         conn.close()
     
     @async_db_operation
->>>>>>> 0704f4581ec8379c1609240fb8513cf9eb0e1030
     def get_constraint_stats(self, task_id: str) -> Optional[Dict[str, Any]]:
 
     # 基本校验：空 & 太短直接认为无效
