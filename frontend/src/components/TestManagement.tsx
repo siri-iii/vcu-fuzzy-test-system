@@ -5,32 +5,163 @@ import { toast } from 'sonner';
 
 interface TestManagementProps {
   onCreateTest: () => void;
-  onViewMonitoring: (taskId: string) => void;
+  onViewMonitoring: (taskId: string, taskName: string) => void;
 }
 
-export function TestManagement({ onCreateTest, onViewMonitoring }: TestManagementProps) {
+export function TestManagement({ onViewMonitoring }: TestManagementProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterStrategy, setFilterStrategy] = useState('all');
   const [tests, setTests] = useState<any[]>([]);
-  const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    test_mode: 'both',
+    traditional_enabled: true,
+    traditional_max_cases: 100,
+    gan_enabled: true,
+    gan_max_cases: 50,
+    gan_temperature: 1.0,
+    rate_limit: 100.0,
+    crc_check: true,
+    dlc_check: true,
+  });
 
   // 加载数据
   useEffect(() => {
     loadData();
   }, []);
 
+  // 事件处理函数
+  const handleCreateTest = () => {
+    setShowCreateModal(true);
+  };
+
+  const handleSubmitCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      // 构建测试计划数据
+      const planData = {
+        name: formData.name,
+        description: formData.description,
+        test_mode: formData.test_mode,
+        traditional_config: formData.traditional_enabled ? {
+          enabled: true,
+          intensity: 5,
+          max_cases: formData.traditional_max_cases,
+        } : null,
+        gan_config: formData.gan_enabled ? {
+          enabled: true,
+          model_version: "v1.0",
+          sampling_temperature: formData.gan_temperature,
+          max_cases: formData.gan_max_cases,
+        } : null,
+        constraint_config: {
+          rate_limit: formData.rate_limit,
+          crc_check: formData.crc_check,
+          dlc_check: formData.dlc_check,
+        },
+      };
+
+      // 创建测试计划（API拦截器已返回data）
+      const plan = await testPlanAPI.create(planData) as any;
+      toast.success('测试计划创建成功');
+
+      // 创建测试任务
+      await testTaskAPI.create({ plan_id: plan.id });
+      toast.success('测试任务创建成功');
+
+      // 关闭模态框并刷新数据
+      setShowCreateModal(false);
+      loadData();
+      
+      // 重置表单
+      setFormData({
+        name: '',
+        description: '',
+        test_mode: 'both',
+        traditional_enabled: true,
+        traditional_max_cases: 100,
+        gan_enabled: true,
+        gan_max_cases: 50,
+        gan_temperature: 1.0,
+        rate_limit: 100.0,
+        crc_check: true,
+        dlc_check: true,
+      });
+    } catch (error: any) {
+      console.error('创建测试失败:', error);
+      toast.error('创建测试失败: ' + (error.message || '未知错误'));
+    }
+  };
+
+  const handleViewMonitoring = (taskId: string, taskName: string) => {
+    onViewMonitoring(taskId, taskName);
+  };
+
+  const handleStart = async (taskId: string) => {
+    try {
+      await testTaskAPI.start(taskId);
+      toast.success('测试任务已启动');
+      loadData();
+    } catch (error: any) {
+      console.error('启动任务失败:', error);
+      toast.error('启动任务失败: ' + (error.message || '未知错误'));
+    }
+  };
+
+  const handlePause = async (taskId: string) => {
+    try {
+      await testTaskAPI.pause(taskId);
+      toast.success('测试任务已暂停');
+      loadData();
+    } catch (error: any) {
+      console.error('暂停任务失败:', error);
+      toast.error('暂停任务失败: ' + (error.message || '未知错误'));
+    }
+  };
+
+  const handleStop = async (taskId: string) => {
+    try {
+      await testTaskAPI.stop(taskId);
+      toast.success('测试任务已停止');
+      loadData();
+    } catch (error: any) {
+      console.error('停止任务失败:', error);
+      toast.error('停止任务失败: ' + (error.message || '未知错误'));
+    }
+  };
+
+  const handleDelete = async (planId: string) => {
+    if (!confirm('确定要删除这个测试计划吗？此操作无法撤销。')) {
+      return;
+    }
+    try {
+      await testPlanAPI.delete(planId);
+      toast.success('测试计划已删除');
+      loadData();
+    } catch (error: any) {
+      console.error('删除计划失败:', error);
+      toast.error('删除计划失败: ' + (error.message || '未知错误'));
+    }
+  };
+
   const loadData = async () => {
     try {
       setLoading(true);
-      const [tasksData, plansData] = await Promise.all([
-        testTaskAPI.getAll(),
-        testPlanAPI.getAll()
-      ]);
+      // API拦截器已返回data，直接使用
+      const tasksData = await testTaskAPI.getAll() as any;
+      const plansData = await testPlanAPI.getAll() as any;
       
-      // 合并任务和计划数据
-      const mergedTests = tasksData.map((task: any) => {
+      // 合并任务和计划数据，过滤掉没有关联计划的孤立任务
+      const mergedTests = tasksData
+        .filter((task: any) => {
+          // 只保留有关联计划的任务
+          return plansData.some((p: any) => p.id === task.plan_id);
+        })
+        .map((task: any) => {
         const plan = plansData.find((p: any) => p.id === task.plan_id);
         
         // 计算进度（基于total_cases，假设目标1000）
@@ -82,7 +213,6 @@ export function TestManagement({ onCreateTest, onViewMonitoring }: TestManagemen
       });
       
       setTests(mergedTests);
-      setPlans(plansData);
     } catch (error: any) {
       console.error('加载数据失败:', error);
       toast.error('加载数据失败: ' + (error.message || '未知错误'));
@@ -91,96 +221,7 @@ export function TestManagement({ onCreateTest, onViewMonitoring }: TestManagemen
     }
   };
 
-  // 旧的模拟数据作为fallback
-  const mockTests = [
-    {
-      id: 1,
-      name: 'VCU休眠唤醒-策略2测试',
-      type: '传统+GAN',
-      status: 'running',
-      strategy: '策略2',
-      progress: 65,
-      startTime: '2025-11-21 09:30',
-      duration: '1小时32分',
-      anomalies: 8,
-      coverage: 82,
-      dbcFile: 'VCU_CAN_v2.3.dbc',
-      dataFormat: 'BLF',
-      requirementId: 'REQ-001',
-      configBaseline: 'v2.0',
-      createdBy: '张工',
-    },
-    {
-      id: 2,
-      name: 'VCU多域并发测试',
-      type: 'GAN',
-      status: 'completed',
-      strategy: '策略1',
-      progress: 100,
-      startTime: '2025-11-20 14:20',
-      duration: '2小时15分',
-      anomalies: 15,
-      coverage: 78,
-      dbcFile: 'VCU_CAN_v2.3.dbc',
-      dataFormat: 'ASC',
-      requirementId: 'REQ-003',
-      configBaseline: 'v2.0',
-      createdBy: '李工',
-    },
-    {
-      id: 3,
-      name: 'VCU唤醒时序测试',
-      type: '传统',
-      status: 'pending',
-      strategy: '策略3',
-      progress: 0,
-      startTime: '2025-11-21 16:00',
-      duration: '-',
-      anomalies: 0,
-      coverage: 0,
-      dbcFile: 'VCU_CAN_v2.3.dbc',
-      dataFormat: 'CSV',
-      requirementId: 'REQ-002',
-      configBaseline: 'v2.0',
-      createdBy: '王工',
-    },
-    {
-      id: 4,
-      name: 'VCU上下电循环测试',
-      type: '传统+GAN',
-      status: 'paused',
-      strategy: '策略0',
-      progress: 45,
-      startTime: '2025-11-21 08:15',
-      duration: '3小时10分',
-      anomalies: 12,
-      coverage: 68,
-      dbcFile: 'VCU_CAN_v2.3.dbc',
-      dataFormat: 'BLF',
-      requirementId: 'REQ-004',
-      configBaseline: 'v1.9',
-      createdBy: '张工',
-    },
-    {
-      id: 5,
-      name: 'VCU网络拥塞模拟测试',
-      type: 'GAN',
-      status: 'completed',
-      strategy: '策略1',
-      progress: 100,
-      startTime: '2025-11-19 16:45',
-      duration: '1小时48分',
-      anomalies: 22,
-      coverage: 91,
-      dbcFile: 'VCU_CAN_v2.2.dbc',
-      dataFormat: 'BLF',
-      requirementId: 'REQ-003',
-      configBaseline: 'v1.9',
-      createdBy: '赵工',
-    },
-  ];
-
-  const filteredTests = (tests.length > 0 ? tests : mockTests).filter((test) => {
+  const filteredTests = tests.filter((test) => {
     const matchesSearch = test.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'all' || test.status === filterStatus;
     const matchesStrategy = filterStrategy === 'all' || test.strategy === filterStrategy;
@@ -219,7 +260,7 @@ export function TestManagement({ onCreateTest, onViewMonitoring }: TestManagemen
           <p className="text-slate-600">统一执行接口 · 策略可追溯 · 数据中心化管理</p>
         </div>
         <button
-          onClick={onCreateTest}
+          onClick={handleCreateTest}
           className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:shadow-lg hover:shadow-blue-600/20 transition-all"
         >
           <Plus className="w-5 h-5" />
@@ -351,7 +392,7 @@ export function TestManagement({ onCreateTest, onViewMonitoring }: TestManagemen
                   {getStatusBadge(test.status)}
                   <div className="flex items-center gap-1.5 border-l border-slate-200 pl-3">
                     <button
-                      onClick={() => handleViewMonitoring(test.id)}
+                      onClick={() => handleViewMonitoring(test.id, test.name)}
                       className="p-2 hover:bg-blue-50 rounded-lg transition-colors group/btn"
                       title="查看详情"
                     >
@@ -483,6 +524,195 @@ export function TestManagement({ onCreateTest, onViewMonitoring }: TestManagemen
           </div>
         )))}
       </div>
+      )}
+
+      {/* 创建测试模态框 */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h3 className="text-xl font-semibold text-gray-900">创建新测试</h3>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitCreate} className="p-6 space-y-6">
+              {/* 基本信息 */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium text-gray-700">基本信息</h4>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-2">测试计划名称 *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    placeholder="例如：VCU休眠唤醒测试"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-2">描述</label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    rows={3}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    placeholder="测试计划的详细描述..."
+                  />
+                </div>
+              </div>
+
+              {/* 测试模式 */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium text-gray-700">测试模式</h4>
+                <div className="grid grid-cols-3 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, test_mode: 'traditional', traditional_enabled: true, gan_enabled: false })}
+                    className={`p-4 border-2 rounded-lg text-center transition-all ${
+                      formData.test_mode === 'traditional'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="font-medium">传统测试</div>
+                    <div className="text-xs text-gray-500 mt-1">边界值测试</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, test_mode: 'gan', traditional_enabled: false, gan_enabled: true })}
+                    className={`p-4 border-2 rounded-lg text-center transition-all ${
+                      formData.test_mode === 'gan'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="font-medium">GAN测试</div>
+                    <div className="text-xs text-gray-500 mt-1">智能生成</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, test_mode: 'both', traditional_enabled: true, gan_enabled: true })}
+                    className={`p-4 border-2 rounded-lg text-center transition-all ${
+                      formData.test_mode === 'both'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="font-medium">混合模式</div>
+                    <div className="text-xs text-gray-500 mt-1">传统+GAN</div>
+                  </button>
+                </div>
+              </div>
+
+              {/* 传统测试配置 */}
+              {formData.traditional_enabled && (
+                <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                  <h4 className="text-sm font-medium text-gray-700">传统测试配置</h4>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-2">最大用例数</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={formData.traditional_max_cases}
+                      onChange={(e) => setFormData({ ...formData, traditional_max_cases: parseInt(e.target.value) })}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* GAN测试配置 */}
+              {formData.gan_enabled && (
+                <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                  <h4 className="text-sm font-medium text-gray-700">GAN测试配置</h4>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-2">最大用例数</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={formData.gan_max_cases}
+                      onChange={(e) => setFormData({ ...formData, gan_max_cases: parseInt(e.target.value) })}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-2">采样温度</label>
+                    <input
+                      type="number"
+                      min="0.1"
+                      max="2.0"
+                      step="0.1"
+                      value={formData.gan_temperature}
+                      onChange={(e) => setFormData({ ...formData, gan_temperature: parseFloat(e.target.value) })}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">推荐值：0.8-1.2，值越大变化越大</p>
+                  </div>
+                </div>
+              )}
+
+              {/* 约束配置 */}
+              <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                <h4 className="text-sm font-medium text-gray-700">约束配置</h4>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-2">速率限制 (msg/s)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={formData.rate_limit}
+                    onChange={(e) => setFormData({ ...formData, rate_limit: parseFloat(e.target.value) })}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div className="flex items-center gap-6">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.crc_check}
+                      onChange={(e) => setFormData({ ...formData, crc_check: e.target.checked })}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">CRC校验</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.dlc_check}
+                      onChange={(e) => setFormData({ ...formData, dlc_check: e.target.checked })}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">DLC校验</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* 提交按钮 */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-medium"
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:shadow-lg hover:shadow-blue-600/20 transition-all font-medium"
+                >
+                  创建并启动
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

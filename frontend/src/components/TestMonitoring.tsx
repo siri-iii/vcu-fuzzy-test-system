@@ -7,17 +7,11 @@ import { toast } from 'sonner';
 
 interface TestMonitoringProps {
   taskId: string;
+  taskName: string;
   onBack: () => void;
 }
 
-const comparisonData = [
-  { metric: '用例生成', traditional: 450, gan: 380 },
-  { metric: '异常触发', traditional: 13, gan: 42 },
-  { metric: '代码覆盖', traditional: 68, gan: 85 },
-  { metric: '执行效率', traditional: 72, gan: 88 },
-];
-
-export function TestMonitoring({ taskId, onBack }: TestMonitoringProps) {
+export function TestMonitoring({ taskId, taskName, onBack }: TestMonitoringProps) {
   const [task, setTask] = useState<any>(null);
   const [metrics, setMetrics] = useState<any[]>([]);
   const [status, setStatus] = useState<'running' | 'paused' | 'stopped'>('running');
@@ -107,7 +101,7 @@ export function TestMonitoring({ taskId, onBack }: TestMonitoringProps) {
     }
   };
 
-  // 计算对比数据
+  // 计算对比数据（完全使用真实数据）
   const comparisonData = task ? [
     { 
       metric: '用例生成', 
@@ -129,12 +123,7 @@ export function TestMonitoring({ taskId, onBack }: TestMonitoringProps) {
       traditional: task.traditional_stats?.anomaly_rate ? Math.round(task.traditional_stats.anomaly_rate * 100) : 0, 
       gan: task.gan_stats?.anomaly_rate ? Math.round(task.gan_stats.anomaly_rate * 100) : 0
     },
-  ] : [
-    { metric: '用例生成', traditional: 450, gan: 380 },
-    { metric: '异常触发', traditional: 13, gan: 42 },
-    { metric: '代码覆盖', traditional: 68, gan: 85 },
-    { metric: '执行效率', traditional: 72, gan: 88 },
-  ];
+  ] : [];
 
   return (
     <div className="p-6 mt-[56px]">
@@ -143,7 +132,7 @@ export function TestMonitoring({ taskId, onBack }: TestMonitoringProps) {
         className="flex items-center gap-2 text-gray-600 hover:text-blue-600 mb-6 transition-colors group"
       >
         <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-        返回仪表盘
+        返回测试管理
       </button>
 
       {/* Task Header */}
@@ -154,7 +143,7 @@ export function TestMonitoring({ taskId, onBack }: TestMonitoringProps) {
               <Zap className="w-8 h-8 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl mb-1">测试任务 {task?.id || ''}</h2>
+              <h2 className="text-2xl mb-1">{taskName || `测试任务 ${task?.id || ''}`}</h2>
               <div className="flex items-center gap-3">
                 <span
                   className={`px-3 py-1.5 rounded-lg flex items-center gap-2 ${

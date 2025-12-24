@@ -21,6 +21,7 @@ export default function App() {
   const { currentRole } = useRole();
   const [currentView, setCurrentView] = useState<string>("dashboard");
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
+  const [currentTaskName, setCurrentTaskName] = useState<string>("");
 
   // 根据角色设置默认视图
   useEffect(() => {
@@ -38,21 +39,14 @@ export default function App() {
     if (currentRole === 'test_engineer') {
       switch (currentView) {
         case "dashboard":
-          return (
-            <Dashboard
-              onCreateTest={() => setCurrentView("tests")}
-              onViewMonitoring={(taskId: string) => {
-                setCurrentTaskId(taskId);
-                setCurrentView("monitoring");
-              }}
-            />
-          );
+          return <Dashboard />;
         case "tests":
           return (
             <TestManagement
               onCreateTest={() => setCurrentView("tests")}
-              onViewMonitoring={(taskId: string) => {
+              onViewMonitoring={(taskId: string, taskName: string) => {
                 setCurrentTaskId(taskId);
+                setCurrentTaskName(taskName);
                 setCurrentView("monitoring");
               }}
             />
@@ -61,7 +55,8 @@ export default function App() {
           return (
             <TestMonitoring
               taskId={currentTaskId || ""}
-              onBack={() => setCurrentView("dashboard")}
+              taskName={currentTaskName}
+              onBack={() => setCurrentView("tests")}
             />
           );
         case "analysis":
@@ -69,15 +64,7 @@ export default function App() {
         case "reports":
           return <ReportCenter />;
         default:
-          return (
-            <Dashboard
-              onCreateTest={() => setCurrentView("tests")}
-              onViewMonitoring={(taskId: string) => {
-                setCurrentTaskId(taskId);
-                setCurrentView("monitoring");
-              }}
-            />
-          );
+          return <Dashboard />;
       }
     }
 

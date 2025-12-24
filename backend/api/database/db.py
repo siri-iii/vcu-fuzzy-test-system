@@ -248,12 +248,26 @@ class Database:
     
     @async_db_operation
     def delete_test_plan(self, plan_id: str) -> bool:
-        """删除测试计划"""
+        """删除测试计划（级联删除相关任务）"""
         conn = self._get_connection()
         cursor = conn.cursor()
         
+        # 先获取所有相关的任务ID
+        cursor.execute("SELECT id FROM test_tasks WHERE plan_id = ?", (plan_id,))
+        task_ids = [row[0] for row in cursor.fetchall()]
+        
+        # 删除相关的异常记录
+        for task_id in task_ids:
+            cursor.execute("DELETE FROM anomalies WHERE task_id = ?", (task_id,))
+            cursor.execute("DELETE FROM constraint_stats WHERE task_id = ?", (task_id,))
+        
+        # 删除相关的测试任务
+        cursor.execute("DELETE FROM test_tasks WHERE plan_id = ?", (plan_id,))
+        
+        # 删除测试计划
         cursor.execute("DELETE FROM test_plans WHERE id = ?", (plan_id,))
         deleted = cursor.rowcount > 0
+        
         conn.commit()
         conn.close()
         
@@ -391,7 +405,39 @@ class Database:
             anomalies.append(data)
         
         return anomalies
+<<<<<<< HEAD
     @async_db_operation 
+=======
+    
+    @async_db_operation
+    def save_anomaly(self, anomaly_data: Dict[str, Any]):
+        """保存异常记录"""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT OR REPLACE INTO anomalies 
+            (id, task_id, anomaly_type, severity, test_case, context, 
+             detected_at, source, reproducible, min_reproduce_script)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            anomaly_data["id"],
+            anomaly_data["task_id"],
+            anomaly_data["anomaly_type"],
+            anomaly_data["severity"],
+            json.dumps(anomaly_data.get("test_case", {})),
+            json.dumps(anomaly_data.get("context", {})),
+            anomaly_data["detected_at"],
+            anomaly_data.get("source"),
+            int(anomaly_data.get("reproducible", False)),
+            json.dumps(anomaly_data.get("min_reproduce_script")) if anomaly_data.get("min_reproduce_script") else None
+        ))
+        
+        conn.commit()
+        conn.close()
+    
+    @async_db_operation
+>>>>>>> 0704f4581ec8379c1609240fb8513cf9eb0e1030
     def get_constraint_stats(self, task_id: str) -> Optional[Dict[str, Any]]:
 
     # 基本校验：空 & 太短直接认为无效

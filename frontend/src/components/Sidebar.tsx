@@ -39,7 +39,6 @@ export function Sidebar({ currentView, onNavigate }: SidebarProps) {
         return [
           { id: 'dashboard', label: '概览', icon: LayoutDashboard },
           { id: 'tests', label: '测试管理', icon: FlaskConical },
-          { id: 'monitoring', label: '实时监控', icon: Monitor },
           { id: 'analysis', label: '结果分析', icon: BarChart3 },
           { id: 'reports', label: '报告中心', icon: FileText },
         ].map(item => ({ ...item, colors }));
