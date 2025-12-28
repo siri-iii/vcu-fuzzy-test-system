@@ -178,3 +178,118 @@ export const securityAPI = {
   getAudit: (limit?: number) =>
     api.get('/api/security/audit', { params: { limit } }),
 }
+
+// ================= HIL联调 API =================
+export const hilAPI = {
+  // 获取HIL设备列表
+  getDevices: () => api.get('/api/hil/devices'),
+
+  // 获取设备详情
+  getDeviceById: (id: string) => api.get(`/api/hil/devices/${id}`),
+
+  // 连接设备
+  connect: (id: string) => api.post(`/api/hil/devices/${id}/connect`),
+
+  // 断开设备
+  disconnect: (id: string) => api.post(`/api/hil/devices/${id}/disconnect`),
+
+  // 获取测试用例列表
+  getTestCases: (deviceId?: string) => 
+    api.get('/api/hil/test-cases', { params: deviceId ? { device_id: deviceId } : {} }),
+
+  // 创建测试用例
+  createTestCase: (testCase: any) => api.post('/api/hil/test-cases', testCase),
+
+  // 运行测试用例
+  runTestCase: (id: string) => api.post(`/api/hil/test-cases/${id}/run`),
+
+  // 停止测试用例
+  stopTestCase: (id: string) => api.post(`/api/hil/test-cases/${id}/stop`),
+
+  // 获取测试结果
+  getTestCaseResult: (id: string) => api.get(`/api/hil/test-cases/${id}/result`),
+}
+
+// ================= 接口验证 API =================
+export const interfaceAPI = {
+  // 获取接口列表
+  getAll: () => api.get('/api/interfaces'),
+
+  // 获取接口详情
+  getById: (id: string) => api.get(`/api/interfaces/${id}`),
+
+  // 验证接口
+  verify: (id: string) => api.post(`/api/interfaces/${id}/verify`),
+
+  // 获取测试历史
+  getTestHistory: (id: string, limit?: number) => 
+    api.get(`/api/interfaces/${id}/test-history`, { params: { limit } }),
+
+  // 执行接口测试
+  test: (id: string, data: any) => api.post(`/api/interfaces/${id}/test`, data),
+}
+
+// ================= 系统部署 API =================
+export const deploymentAPI = {
+  // 获取部署版本列表
+  getVersions: () => api.get('/api/deployment/versions'),
+
+  // 获取当前部署版本
+  getCurrent: () => api.get('/api/deployment/current'),
+
+  // 执行部署
+  deploy: (version: string) => api.post('/api/deployment/deploy', { version }),
+
+  // 获取部署状态
+  getStatus: () => api.get('/api/deployment/status'),
+
+  // 回滚部署
+  rollback: (version: string) => api.post('/api/deployment/rollback', { version }),
+}
+
+// ================= 系统监控 API =================
+export const systemMonitoringAPI = {
+  // 获取系统监控数据
+  getSystem: () => api.get('/api/monitoring/system'),
+
+  // 获取资源使用情况
+  getResources: () => api.get('/api/monitoring/resources'),
+
+  // 获取系统日志
+  getLogs: (params?: {
+    level?: string
+    source?: string
+    limit?: number
+    start_time?: string
+    end_time?: string
+  }) => api.get('/api/monitoring/logs', { params }),
+
+  // 获取告警信息
+  getAlerts: (params?: {
+    level?: string
+    resolved?: boolean
+    limit?: number
+  }) => api.get('/api/monitoring/alerts', { params }),
+}
+
+// ================= 系统配置 API =================
+export const systemConfigAPI = {
+  // 获取系统配置
+  getConfig: () => api.get('/api/system/config'),
+
+  // 更新系统配置
+  updateConfig: (config: any) => api.put('/api/system/config', config),
+
+  // 获取引擎配置
+  getEngines: () => api.get('/api/system/config/engines'),
+
+  // 更新引擎配置
+  updateEngines: (engines: any[]) => api.put('/api/system/config/engines', engines),
+
+  // 获取GAN模型列表
+  getGANModels: () => api.get('/api/system/config/gan-models'),
+
+  // 更新GAN模型配置
+  updateGANModel: (id: string, config: any) => 
+    api.put(`/api/system/config/gan-models/${id}`, config),
+}

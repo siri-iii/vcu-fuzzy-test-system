@@ -10,7 +10,10 @@ from typing import List, Dict
 import asyncio
 import json
 
-from api.routers import test_plans, test_tasks, reports, constraints, monitoring, gan, rules,security
+from api.routers import (
+    test_plans, test_tasks, reports, constraints, monitoring, gan, rules, security,
+    hil, interfaces, deployment, system_monitoring, system_config
+)
 from api.websocket_manager import WebSocketManager
 
 
@@ -38,6 +41,12 @@ app.include_router(monitoring.router, prefix="/api", tags=["监控"])
 app.include_router(gan.router, prefix="/api", tags=["GAN测试"])
 app.include_router(rules.router, prefix="/api", tags=["规则库"])
 app.include_router(security.router, prefix="/api", tags=["安全检查"])
+# 台架维护工程师相关路由
+app.include_router(hil.router, prefix="/api", tags=["HIL联调"])
+app.include_router(interfaces.router, prefix="/api", tags=["接口验证"])
+app.include_router(deployment.router, prefix="/api", tags=["系统部署"])
+app.include_router(system_monitoring.router, prefix="/api", tags=["系统监控"])
+app.include_router(system_config.router, prefix="/api", tags=["系统配置"])
 
 # WebSocket管理器
 ws_manager = WebSocketManager()

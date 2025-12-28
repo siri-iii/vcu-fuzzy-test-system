@@ -225,3 +225,206 @@ class SecurityAuditRecord(BaseModel):
     detail: str
     created_at: str
 
+# ========== HIL联调相关模型 ==========
+
+class HILDeviceType(str, Enum):
+    """HIL设备类型"""
+    VCU = "VCU"
+    HIL = "HIL"
+    CAN = "CAN"
+    PowerSupply = "PowerSupply"
+
+class HILDeviceStatus(str, Enum):
+    """HIL设备状态"""
+    connected = "connected"
+    disconnected = "disconnected"
+    error = "error"
+
+class HILDevice(BaseModel):
+    """HIL设备"""
+    id: str
+    name: str
+    type: HILDeviceType
+    status: HILDeviceStatus
+    ip_address: Optional[str] = None
+    port: Optional[int] = None
+    last_update: Optional[datetime] = None
+    capabilities: List[str] = Field(default_factory=list)
+
+class HILTestCaseStatus(str, Enum):
+    """HIL测试用例状态"""
+    pending = "pending"
+    running = "running"
+    passed = "passed"
+    failed = "failed"
+
+class HILTestCaseCreate(BaseModel):
+    """创建HIL测试用例请求"""
+    name: str
+    description: Optional[str] = None
+    device_id: str
+    test_script: Dict[str, Any] = Field(..., description="JSON格式的测试脚本")
+
+class HILTestCase(BaseModel):
+    """HIL测试用例"""
+    id: str
+    name: str
+    description: Optional[str] = None
+    device_id: str
+    test_script: Dict[str, Any]
+    status: HILTestCaseStatus
+    duration: Optional[float] = None
+    result: Optional[str] = None
+    created_at: datetime
+
+# ========== 接口验证相关模型 ==========
+
+class InterfaceType(str, Enum):
+    """接口类型"""
+    CAN = "CAN"
+    LIN = "LIN"
+    Ethernet = "Ethernet"
+    Serial = "Serial"
+
+class InterfaceStatus(str, Enum):
+    """接口状态"""
+    active = "active"
+    inactive = "inactive"
+    error = "error"
+
+class VerificationResult(str, Enum):
+    """验证结果"""
+    passed = "passed"
+    failed = "failed"
+    pending = "pending"
+
+class Interface(BaseModel):
+    """接口信息"""
+    id: str
+    name: str
+    type: InterfaceType
+    endpoint: str
+    protocol: Optional[str] = None
+    status: InterfaceStatus
+    last_verified: Optional[datetime] = None
+    verification_result: Optional[VerificationResult] = None
+
+class InterfaceTestHistory(BaseModel):
+    """接口测试历史"""
+    id: str
+    interface_id: str
+    test_type: str
+    status: str
+    result: Optional[str] = None
+    response_time: Optional[float] = None
+    tested_at: datetime
+
+class InterfaceTestRequest(BaseModel):
+    """接口测试请求"""
+    test_type: str
+    payload: Optional[Dict[str, Any]] = None
+
+# ========== 系统部署相关模型 ==========
+
+class DeploymentStatus(str, Enum):
+    """部署状态"""
+    deployed = "deployed"
+    pending = "pending"
+    rollback = "rollback"
+
+class DeploymentComponent(BaseModel):
+    """部署组件"""
+    name: str
+    version: str
+    status: str
+
+class DeploymentVersion(BaseModel):
+    """部署版本"""
+    version: str
+    description: Optional[str] = None
+    release_date: datetime
+    status: DeploymentStatus
+    components: List[DeploymentComponent] = Field(default_factory=list)
+
+class DeploymentRequest(BaseModel):
+    """部署请求"""
+    version: str
+
+class DeploymentStatusResponse(BaseModel):
+    """部署状态响应"""
+    status: str
+    current_version: Optional[str] = None
+    target_version: Optional[str] = None
+    progress: Optional[int] = None
+    message: Optional[str] = None
+    started_at: Optional[datetime] = None
+
+class RollbackRequest(BaseModel):
+    """回滚请求"""
+    version: str
+
+# ========== 系统监控相关模型 ==========
+
+class NetworkIO(BaseModel):
+    """网络IO"""
+    bytes_sent: int
+    bytes_recv: int
+
+class SystemMonitoringData(BaseModel):
+    """系统监控数据"""
+    cpu_usage: float
+    memory_usage: float
+    disk_usage: float
+    network_io: NetworkIO
+    active_connections: int
+    timestamp: datetime
+
+class ResourceUsage(BaseModel):
+    """资源使用情况"""
+    cpu: float
+    memory: float
+    disk: float
+    network: NetworkIO
+    timestamp: datetime
+
+class SystemLog(BaseModel):
+    """系统日志"""
+    id: str
+    level: str
+    message: str
+    source: str
+    timestamp: datetime
+
+class Alert(BaseModel):
+    """告警信息"""
+    id: str
+    level: str  # info, warning, error, critical
+    message: str
+    source: str
+    timestamp: datetime
+    resolved: bool = False
+
+# ========== 系统配置相关模型 ==========
+
+class EngineConfig(BaseModel):
+    """引擎配置"""
+    name: str
+    enabled: bool
+    config: Dict[str, Any]
+
+class GANModelConfig(BaseModel):
+    """GAN模型配置"""
+    id: str
+    name: str
+    version: str
+    enabled: bool
+    config: Dict[str, Any]
+
+class SystemConfig(BaseModel):
+    """系统配置"""
+    config: Dict[str, Any]
+
+class SystemConfigUpdate(BaseModel):
+    """系统配置更新"""
+    config: Dict[str, Any]
+

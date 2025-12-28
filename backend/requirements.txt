@@ -30,4 +30,5 @@ python-json-logger==2.0.7
 
 # 其他工具
 python-dotenv==1.0.0
+psutil==5.9.6  # 系统监控
 
