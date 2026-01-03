@@ -71,7 +71,6 @@ export function TopNav() {
           {currentConfig.logoEmoji}
         </div>
         <h1 className="text-xl tracking-wide">IntelliFuzz</h1>
-        <span className={`px-3 py-1 ${currentConfig.bgLight} rounded-full text-xs border ${currentConfig.borderColor} ${currentConfig.textColor}`}>Pro</span>
       </div>
       <div className="flex items-center gap-4">
         <div className="relative" ref={menuRef}>

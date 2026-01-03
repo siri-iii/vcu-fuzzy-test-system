@@ -49,36 +49,85 @@ export function ResultAnalysis({ taskId }: ResultAnalysisProps = {}) {
 
   // 加载数据
   useEffect(() => {
-    if (taskId) {
-      loadAnalysisData();
-    }
-  }, [taskId, timeRange]);
+    loadAnalysisData();
+  }, [timeRange]);
 
   const loadAnalysisData = async () => {
     try {
       setLoading(true);
-      const [anomaliesData, metricsData] = await Promise.all([
-        testTaskAPI.getAnomalies(taskId!, { top_n: 10 }),
-        testTaskAPI.getMetrics(taskId!, 100)
-      ]);
+      // 加载所有任务
+      const tasksData = await testTaskAPI.getAll();
+      const completedTasks = tasksData.filter((t: any) => t.status === 'completed');
       
-      setAnomalies(anomaliesData);
-      setMetrics(metricsData);
+      if (completedTasks.length === 0) {
+        setAnomalies([]);
+        setMetrics([]);
+        setLoading(false);
+        return;
+      }
+      
+      // 汇总所有已完成任务的异常和指标数据
+      const allAnomalies: any[] = [];
+      const allMetrics: any[] = [];
+      
+      for (const task of completedTasks) {
+        try {
+          const [anomaliesData, metricsData] = await Promise.all([
+            testTaskAPI.getAnomalies(task.id, { top_n: 50 }),
+            testTaskAPI.getMetrics(task.id, 100)
+          ]);
+          allAnomalies.push(...anomaliesData);
+          allMetrics.push(...metricsData);
+        } catch (error) {
+          console.error(`加载任务 ${task.id} 数据失败:`, error);
+        }
+      }
+      
+      // 按时间排序，取最新的数据
+      allAnomalies.sort((a, b) => new Date(b.detected_at).getTime() - new Date(a.detected_at).getTime());
+      allMetrics.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      
+      setAnomalies(allAnomalies.slice(0, 10)); // 只保留最新的10条异常
+      setMetrics(allMetrics.slice(0, 100)); // 只保留最新的100条指标
     } catch (error: any) {
       console.error('加载分析数据失败:', error);
       toast.error('加载分析数据失败: ' + (error.message || '未知错误'));
+      setAnomalies([]);
+      setMetrics([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // 从 metrics 数据计算趋势图
-  const performanceTrend = metrics.length > 0 ? metrics.slice(-7).map((m, idx) => ({
-    date: new Date(m.timestamp).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }),
-    traditional: m.traditional_anomalies || 0,
-    gan: m.gan_anomalies || 0,
-    coverage: m.coverage || 0,
-  })) : [];
+  // 从 metrics 数据计算趋势图 - 按时间分组并聚合
+  const performanceTrend = (() => {
+    if (!metrics || metrics.length === 0) return [];
+    
+    // 按日期分组聚合数据
+    const dateMap = new Map<string, { traditional: number, gan: number, coverage: number, count: number }>();
+    
+    metrics.forEach(m => {
+      if (!m?.timestamp) return;
+      const dateKey = new Date(m.timestamp).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
+      const existing = dateMap.get(dateKey) || { traditional: 0, gan: 0, coverage: 0, count: 0 };
+      dateMap.set(dateKey, {
+        traditional: existing.traditional + (m?.traditional_anomalies || 0),
+        gan: existing.gan + (m?.gan_anomalies || 0),
+        coverage: existing.coverage + (m?.coverage || 0),
+        count: existing.count + 1
+      });
+    });
+    
+    // 转换为数组并计算平均值
+    return Array.from(dateMap.entries())
+      .map(([date, data]) => ({
+        date,
+        traditional: Math.round(data.traditional / data.count),
+        gan: Math.round(data.gan / data.count),
+        coverage: Math.round(data.coverage / data.count),
+      }))
+      .slice(-7); // 只取最近7天
+  })();
 
   // 从 anomalies 数据计算分类统计
   const anomalyTypeMap = new Map<string, number>();
@@ -95,13 +144,18 @@ export function ResultAnalysis({ taskId }: ResultAnalysisProps = {}) {
   }));
 
   // 引擎对比数据（从最近的metrics中获取）
-  const latestMetric = metrics.length > 0 ? metrics[metrics.length - 1] : null;
+  const latestMetric = metrics && metrics.length > 0 ? metrics[metrics.length - 1] : null;
   const engineComparison = latestMetric ? [
     { metric: '用例生成速度', traditional: 450, gan: 620 },
-    { metric: '异常检出率', traditional: latestMetric.traditional_anomalies || 0, gan: latestMetric.gan_anomalies || 0 },
-    { metric: '代码覆盖率', traditional: latestMetric.coverage || 0, gan: latestMetric.coverage || 0 },
+    { metric: '异常检出率', traditional: latestMetric?.traditional_anomalies || 0, gan: latestMetric?.gan_anomalies || 0 },
+    { metric: '代码覆盖率', traditional: latestMetric?.coverage || 0, gan: latestMetric?.coverage || 0 },
     { metric: '误报率', traditional: 15, gan: 8 },
-  ] : [];
+  ] : [
+    { metric: '用例生成速度', traditional: 0, gan: 0 },
+    { metric: '异常检出率', traditional: 0, gan: 0 },
+    { metric: '代码覆盖率', traditional: 0, gan: 0 },
+    { metric: '误报率', traditional: 0, gan: 0 },
+  ];
 
 
   // 处理异常数据
@@ -146,7 +200,7 @@ export function ResultAnalysis({ taskId }: ResultAnalysisProps = {}) {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="mb-1">结果分析</h2>
-          <p className="text-sm text-gray-500">测试策略评估 · 异常指纹管理 · 复现率追踪</p>
+          <p className="text-sm text-gray-500">数据概览 · 测试策略评估 · 异常指纹管理</p>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-600">时间范围：</span>
@@ -163,6 +217,17 @@ export function ResultAnalysis({ taskId }: ResultAnalysisProps = {}) {
         </div>
       </div>
 
+      {/* 加载状态 */}
+      {loading && (
+        <div className="text-center py-12 text-gray-500">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          加载中...
+        </div>
+      )}
+
+      {/* 数据显示 */}
+      {!loading && (
+        <>
       {/* Key Metrics */}
       <div className="grid grid-cols-4 gap-5 mb-6">
         <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 hover-lift">
@@ -364,6 +429,8 @@ export function ResultAnalysis({ taskId }: ResultAnalysisProps = {}) {
           ))}
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }

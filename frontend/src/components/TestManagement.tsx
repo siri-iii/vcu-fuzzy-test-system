@@ -70,8 +70,17 @@ export function TestManagement({ onViewMonitoring }: TestManagementProps) {
       toast.success('测试计划创建成功');
 
       // 创建测试任务
-      await testTaskAPI.create({ plan_id: plan.id });
+      const task = await testTaskAPI.create({ plan_id: plan.id }) as any;
       toast.success('测试任务创建成功');
+      
+      // 自动启动任务（方便演示）
+      try {
+        await testTaskAPI.start(task.id);
+        toast.success('测试任务已自动启动');
+      } catch (startError: any) {
+        console.warn('自动启动任务失败:', startError);
+        toast.warning('任务创建成功，但自动启动失败，请手动启动');
+      }
 
       // 关闭模态框并刷新数据
       setShowCreateModal(false);

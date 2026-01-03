@@ -1,7 +1,7 @@
 """
 测试任务服务
 """
-from typing import List, Optional
+from typing import List, Optional, Dict
 from datetime import datetime
 import uuid
 import asyncio
@@ -382,6 +382,49 @@ class TestTaskService:
             logger.info(f"保存异常 {anomaly_id}, 来源: {source}, 类型: {anomaly_data['anomaly_type']}")
         except Exception as e:
             logger.error(f"保存异常记录失败: {e}")
-
-
-
+    
+    async def get_task_logs(
+        self, 
+        task_id: str, 
+        limit: int = 50,
+        source: str = None
+    ) -> List[Dict]:
+        """获取任务日志"""
+        try:
+            conn = self.db._get_connection()
+            cursor = conn.cursor()
+            
+            if source:
+                cursor.execute("""
+                    SELECT * FROM test_logs 
+                    WHERE task_id = ? AND source = ?
+                    ORDER BY timestamp DESC 
+                    LIMIT ?
+                """, (task_id, source, limit))
+            else:
+                cursor.execute("""
+                    SELECT * FROM test_logs 
+                    WHERE task_id = ?
+                    ORDER BY timestamp DESC 
+                    LIMIT ?
+                """, (task_id, limit))
+            
+            rows = cursor.fetchall()
+            conn.close()
+            
+            logs = []
+            for row in rows:
+                logs.append({
+                    "id": row[0],
+                    "task_id": row[1],
+                    "timestamp": row[2],
+                    "source": row[3],
+                    "level": row[4],
+                    "message": row[5],
+                    "details": row[6]
+                })
+            
+            return logs
+        except Exception as e:
+            logger.error(f"获取任务日志失败: {e}")
+            return []

@@ -166,5 +166,20 @@ async def get_task_anomalies(
             detail=f"获取异常列表失败: {str(e)}"
         )
 
-
-
+@router.get("/test-tasks/{task_id}/logs")
+async def get_task_logs(
+    task_id: str,
+    limit: int = 50,
+    source: str = None
+):
+    """
+    获取测试任务的日志
+    """
+    try:
+        logs = await service.get_task_logs(task_id, limit=limit, source=source)
+        return logs
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取任务日志失败: {str(e)}"
+        )

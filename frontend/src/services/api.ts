@@ -94,6 +94,8 @@ export const testTaskAPI = {
   getAnomalies: (id: string, options?: any) => api.get(`/api/test-tasks/${id}/anomalies`, { params: options }),
   // 获取监控指标
   getMetrics: (id: string, limit?: number) => api.get(`/api/test-tasks/${id}/metrics`, { params: { limit } }),
+  // 获取任务日志
+  getLogs: (id: string, limit?: number, source?: string) => api.get(`/api/test-tasks/${id}/logs`, { params: { limit, source } }),
 }
 
 export const ganAPI = {

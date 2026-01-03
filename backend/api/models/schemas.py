@@ -26,6 +26,8 @@ class TraditionalTestConfig(BaseModel):
 
 class GANTestConfig(BaseModel):
     """GAN测试配置"""
+    model_config = {"protected_namespaces": ()}
+    
     enabled: bool = True
     model_version: str = Field(default="v1.0", description="模型版本")
     sampling_temperature: float = Field(default=1.0, ge=0.1, le=2.0, description="采样温度")

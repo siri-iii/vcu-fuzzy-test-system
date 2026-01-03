@@ -33,15 +33,24 @@ export function TestMonitoring({ taskId, taskName, onBack }: TestMonitoringProps
   const loadTaskData = async () => {
     try {
       setLoading(true);
-      const [taskData, metricsData] = await Promise.all([
+      const [taskData, metricsData, logsData] = await Promise.all([
         testTaskAPI.getById(taskId),
-        testTaskAPI.getMetrics(taskId, 100)
+        testTaskAPI.getMetrics(taskId, 100),
+        testTaskAPI.getLogs(taskId, 20)
       ]);
       
       setTask(taskData);
       setMetrics(metricsData);
       setStatus(taskData.status === 'running' ? 'running' : 
                 taskData.status === 'paused' ? 'paused' : 'stopped');
+      
+      // 加载历史日志
+      const formattedLogs = logsData.map((log: any) => ({
+        time: new Date(log.timestamp).toLocaleTimeString('zh-CN', { hour12: false }),
+        source: log.source,
+        message: log.message,
+      }));
+      setLogs(formattedLogs);
     } catch (error: any) {
       console.error('加载任务数据失败:', error);
       toast.error('加载任务数据失败: ' + (error.message || '未知错误'));

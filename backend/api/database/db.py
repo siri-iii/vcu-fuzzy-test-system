@@ -145,6 +145,21 @@ class Database:
                 updated_at TEXT
             )
         """)
+        
+        # 测试日志表
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS test_logs (
+                id TEXT PRIMARY KEY,
+                task_id TEXT,
+                timestamp TEXT,
+                source TEXT,
+                level TEXT,
+                message TEXT,
+                details TEXT,
+                FOREIGN KEY (task_id) REFERENCES test_tasks(id)
+            )
+        """)
+        
         self._seed_rules()
 
   

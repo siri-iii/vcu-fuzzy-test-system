@@ -49,21 +49,14 @@ export function ReportCenter() {
     }
   };
 
-  // 生成报告
-  const handleGenerateReport = async (taskId: string) => {
-    try {
-      const report = await reportAPI.generate(taskId);
-      toast.success('报告生成成功');
-      loadData();
-      return report;
-    } catch (error: any) {
-      toast.error('生成报告失败: ' + (error.message || '未知错误'));
-    }
-  };
-
-  // 下载报告
+  // 生成并下载报告
   const handleDownloadReport = async (taskId: string, reportId: string) => {
     try {
+      // 先生成报告
+      toast.info('正在生成报告...');
+      await reportAPI.generate(taskId);
+      
+      // 再下载PDF
       const blob = await reportAPI.download(taskId, 'pdf');
       // 处理blob响应
       const url = window.URL.createObjectURL(blob);
@@ -72,9 +65,9 @@ export function ReportCenter() {
       a.download = `report_${reportId}.pdf`;
       a.click();
       window.URL.revokeObjectURL(url);
-      toast.success('报告下载成功');
+      toast.success('报告生成并下载成功');
     } catch (error: any) {
-      toast.error('下载报告失败: ' + (error.message || '未知错误'));
+      toast.error('生成或下载报告失败: ' + (error.message || '未知错误'));
     }
   };
 
@@ -183,13 +176,6 @@ export function ReportCenter() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <button 
-                  onClick={() => report.taskId && handleGenerateReport(report.taskId)}
-                  className="px-4 py-2.5 border-2 border-gray-300 rounded-xl hover:bg-gray-50 transition-all flex items-center gap-2"
-                >
-                  <FileText className="w-4 h-4" />
-                  生成报告
-                </button>
                 <button 
                   onClick={() => report.taskId && handleDownloadReport(report.taskId, report.id)}
                   className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:shadow-lg hover:shadow-blue-600/20 transition-all flex items-center gap-2"
