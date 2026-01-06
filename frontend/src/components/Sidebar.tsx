@@ -54,7 +54,7 @@ export function Sidebar({ currentView, onNavigate }: SidebarProps) {
         return [
           { id: 'hil-debugging', label: 'HIL联调', icon: Wrench },
           { id: 'interface-verification', label: '接口验证', icon: Network },
-          { id: 'system-deployment', label: '系统部署', icon: Server },
+          //{ id: 'system-deployment', label: '系统部署', icon: Server },
           { id: 'system-monitoring', label: '系统监控', icon: Monitor },
           { id: 'system-settings', label: '系统配置', icon: Settings },
         ].map(item => ({ ...item, colors }));

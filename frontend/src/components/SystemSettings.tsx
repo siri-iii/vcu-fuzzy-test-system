@@ -54,7 +54,7 @@ export function SystemSettings() {
     { id: 'gan', label: 'GAN模型', icon: '🎛️', badge: 'AI' },
     { id: 'constraints', label: '约束器', icon: '🛡️', badge: null },
     { id: 'data', label: '数据资产', icon: '💾', badge: null },
-    { id: 'rbac', label: '权限管理', icon: '👥', badge: null },
+    //{ id: 'rbac', label: '权限管理', icon: '👥', badge: null },
   ];
 
   // 根据角色获取主题色

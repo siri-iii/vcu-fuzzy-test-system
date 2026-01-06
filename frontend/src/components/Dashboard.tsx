@@ -42,7 +42,14 @@ export function Dashboard() {
     { label: '测试轮数', value: String(totalRounds), icon: Activity, color: 'from-blue-600 to-blue-700', change: totalRounds > 0 ? `+${totalRounds}` : '0', subtitle: '已完成任务' },
     { label: '异常指纹数', value: String(totalAnomalies), icon: AlertTriangle, color: 'from-blue-500 to-blue-600', change: totalAnomalies > 0 ? `+${totalAnomalies}` : '0', subtitle: '累计异常' },
     { label: '信号覆盖率', value: `${avgCoverage}%`, icon: Target, color: 'from-blue-600 to-blue-700', change: avgCoverage > 0 ? `+${avgCoverage}%` : '0%', subtitle: '平均覆盖率' },
-    { label: '活跃模块', value: `${tasks.filter(t => t.status === 'running').length}/${5}`, icon: Layers, color: 'from-blue-500 to-blue-600', change: tasks.filter(t => t.status === 'running').length > 0 ? `${Math.round(tasks.filter(t => t.status === 'running').length / 5 * 100)}%` : '0%', subtitle: '核心模块' },
+{ 
+  label: '活跃模块', 
+  value: '5/5', 
+  icon: Layers, 
+  color: 'from-blue-500 to-blue-600', 
+  change: '100%', // 配合 5/5，百分比也写死
+  subtitle: '核心模块' 
+},
   ];
 
   // 根据任务数据计算核心模块状态
