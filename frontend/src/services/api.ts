@@ -1,6 +1,9 @@
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+// 在开发模式下使用相对路径（走vite代理），在生产模式下使用环境变量
+const API_BASE_URL = import.meta.env.DEV 
+  ? '' // 开发模式：使用相对路径，走vite代理
+  : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000')
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -108,8 +111,14 @@ export const ganAPI = {
 }
 
 export const reportAPI = {
-  // 生成报告
-  generate: (taskId: string) => api.post(`/api/test-tasks/${taskId}/report`),
+  // 生成报告（确保生成详细报告）
+  generate: (taskId: string, format: string = 'pdf', includeComparison: boolean = true) => {
+    return api.post(`/api/test-tasks/${taskId}/report`, {
+      task_id: taskId,
+      format: format,
+      include_comparison: includeComparison
+    });
+  },
   // 下载报告（返回blob）
   download: (taskId: string, format: string = 'pdf') => {
     return api.get(`/api/test-tasks/${taskId}/report/download`, {

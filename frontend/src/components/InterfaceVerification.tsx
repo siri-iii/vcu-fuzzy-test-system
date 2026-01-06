@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Network, CheckCircle, XCircle, Play, RefreshCw, Settings } from 'lucide-react';
+import { Network, CheckCircle, XCircle, Play, RefreshCw, Settings, X } from 'lucide-react';
 
 interface Interface {
   id: string;
@@ -18,12 +18,25 @@ interface TestCase {
   description: string;
   status: 'pending' | 'running' | 'passed' | 'failed';
   responseTime?: number;
+  settings?: {
+    timeout?: number;
+    retryCount?: number;
+    messageId?: string;
+    dataLength?: number;
+  };
 }
 
 export function InterfaceVerification() {
   const [interfaces, setInterfaces] = useState<Interface[]>([]);
   const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [selectedInterface, setSelectedInterface] = useState<string>('');
+  const [selectedTestCaseForSettings, setSelectedTestCaseForSettings] = useState<TestCase | null>(null);
+  const [settingsForm, setSettingsForm] = useState({
+    timeout: 5000,
+    retryCount: 3,
+    messageId: '',
+    dataLength: 8,
+  });
 
   useEffect(() => {
     loadInterfaces();
@@ -95,6 +108,72 @@ export function InterfaceVerification() {
     setTestCases(mockCases);
   };
 
+  const handleRefresh = () => {
+    loadInterfaces();
+    loadTestCases();
+    console.log('刷新接口状态和测试用例');
+  };
+
+  const handleRunTests = () => {
+    const selectedCases = testCases.filter(c => c.interfaceId === selectedInterface);
+    selectedCases.forEach(case_ => {
+      setTestCases(prev => prev.map(tc => 
+        tc.id === case_.id ? { ...tc, status: 'running' as const } : tc
+      ));
+      setTimeout(() => {
+        setTestCases(prev => prev.map(tc => 
+          tc.id === case_.id ? { ...tc, status: 'passed' as const, responseTime: Math.floor(Math.random() * 100) + 10 } : tc
+        ));
+      }, 2000);
+    });
+    console.log('执行接口测试');
+  };
+
+  const handleRunTestCase = (testCaseId: string) => {
+    setTestCases(prev => prev.map(tc => 
+      tc.id === testCaseId ? { ...tc, status: 'running' as const } : tc
+    ));
+    setTimeout(() => {
+      setTestCases(prev => prev.map(tc => 
+        tc.id === testCaseId ? { ...tc, status: 'passed' as const, responseTime: Math.floor(Math.random() * 100) + 10 } : tc
+      ));
+    }, 2000);
+  };
+
+  const handleViewLogs = (testCaseId: string) => {
+    console.log(`查看测试用例日志: ${testCaseId}`);
+    alert(`查看测试用例 ${testCaseId} 的日志`);
+  };
+
+  const handleOpenSettings = (testCaseId: string) => {
+    const testCase = testCases.find(tc => tc.id === testCaseId);
+    if (testCase) {
+      setSelectedTestCaseForSettings(testCase);
+      setSettingsForm({
+        timeout: testCase.settings?.timeout || 5000,
+        retryCount: testCase.settings?.retryCount || 3,
+        messageId: testCase.settings?.messageId || '',
+        dataLength: testCase.settings?.dataLength || 8,
+      });
+    }
+  };
+
+  const handleSaveSettings = () => {
+    if (selectedTestCaseForSettings) {
+      setTestCases(prev => prev.map(tc => 
+        tc.id === selectedTestCaseForSettings.id 
+          ? { ...tc, settings: { ...settingsForm } }
+          : tc
+      ));
+      setSelectedTestCaseForSettings(null);
+      console.log('测试用例设置已保存', settingsForm);
+    }
+  };
+
+  const handleCloseSettings = () => {
+    setSelectedTestCaseForSettings(null);
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'active':
@@ -126,11 +205,11 @@ export function InterfaceVerification() {
           <p className="text-sm text-gray-500">接口列表 · 测试用例 · 性能监控</p>
         </div>
         <div className="flex gap-2">
-          <button className="px-4 py-2 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-all flex items-center gap-2">
+          <button onClick={handleRunTests} className="px-4 py-2 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-all flex items-center gap-2">
             <Play className="w-4 h-4" />
             执行测试
           </button>
-          <button className="px-4 py-2 border-2 border-gray-300 rounded-xl hover:bg-gray-50 transition-all flex items-center gap-2">
+          <button onClick={handleRefresh} className="px-4 py-2 border-2 border-gray-300 rounded-xl hover:bg-gray-50 transition-all flex items-center gap-2">
             <RefreshCw className="w-4 h-4" />
             刷新状态
           </button>
@@ -206,10 +285,13 @@ export function InterfaceVerification() {
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <button className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all">
+                <button onClick={() => handleRunTestCase(testCase.id)} disabled={testCase.status === "running"} className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                     <Play className="w-4 h-4" />
                   </button>
-                  <button className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all">
+                  <button 
+                    onClick={() => handleOpenSettings(testCase.id)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all"
+                  >
                     <Settings className="w-4 h-4" />
                   </button>
                 </div>
@@ -240,6 +322,103 @@ export function InterfaceVerification() {
           </div>
         </div>
       </div>
+
+      {/* 测试用例设置模态框 */}
+      {selectedTestCaseForSettings && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={handleCloseSettings}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h3 className="text-xl font-semibold">{selectedTestCaseForSettings.name} - 设置</h3>
+                <p className="text-sm text-gray-500 mt-1">{selectedTestCaseForSettings.description}</p>
+              </div>
+              <button
+                onClick={handleCloseSettings}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    超时时间 (ms)
+                  </label>
+                  <input
+                    type="number"
+                    value={settingsForm.timeout}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, timeout: parseInt(e.target.value) || 0 })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    min="1000"
+                    max="60000"
+                    step="1000"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">测试用例执行的最大等待时间</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    重试次数
+                  </label>
+                  <input
+                    type="number"
+                    value={settingsForm.retryCount}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, retryCount: parseInt(e.target.value) || 0 })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    min="0"
+                    max="10"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">测试失败时的最大重试次数</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    报文ID (十六进制)
+                  </label>
+                  <input
+                    type="text"
+                    value={settingsForm.messageId}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, messageId: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    placeholder="例如: 0x123"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">CAN/LIN报文的标识符</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    数据长度 (字节)
+                  </label>
+                  <input
+                    type="number"
+                    value={settingsForm.dataLength}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, dataLength: parseInt(e.target.value) || 0 })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    min="0"
+                    max="64"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">报文数据字段的长度</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={handleCloseSettings}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSaveSettings}
+                className="px-4 py-2 bg-orange-600 text-white hover:bg-orange-700 rounded-lg transition-all"
+              >
+                保存设置
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

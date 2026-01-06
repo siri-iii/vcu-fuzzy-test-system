@@ -67,8 +67,9 @@ export function Sidebar({ currentView, onNavigate }: SidebarProps) {
   const menuItems = getMenuItems();
 
   return (
-    <aside className="w-[240px] bg-slate-50 h-screen fixed left-0 top-[56px] pt-6 shadow-sm border-r border-slate-200">
-      <nav className="px-3">
+    <aside className="w-[240px] bg-slate-50 h-screen fixed left-0 top-[56px] shadow-sm border-r border-slate-200 flex flex-col">
+      {/* Navigation - Scrollable */}
+      <nav className="px-3 pt-6 flex-1 overflow-y-auto min-h-0 pb-32">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentView === item.id;
@@ -92,8 +93,8 @@ export function Sidebar({ currentView, onNavigate }: SidebarProps) {
         })}
       </nav>
       
-      {/* Version Info */}
-      <div className="absolute bottom-8 left-0 right-0 px-6">
+      {/* Version Info - Aligned with requirement traceability matrix bottom */}
+      <div className="absolute bottom-[200px] left-0 right-0 px-6 bg-slate-50 border-t border-slate-200">
         <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
           <div className="text-sm text-slate-700 mb-1">系统版本</div>
           <div className="text-xs text-slate-500">v2.0 Beta</div>

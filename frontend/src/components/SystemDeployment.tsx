@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Server, Play, Square, RefreshCw, CheckCircle, XCircle, Clock, Download } from 'lucide-react';
+import { Server, Play, Square, RefreshCw, CheckCircle, XCircle, Clock, Download, X } from 'lucide-react';
 
 interface Deployment {
   id: string;
@@ -11,13 +11,116 @@ interface Deployment {
   progress?: number;
 }
 
+interface LogEntry {
+  timestamp: string;
+  level: 'info' | 'warning' | 'error' | 'success';
+  message: string;
+}
+
 export function SystemDeployment() {
   const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [isDeploying, setIsDeploying] = useState(false);
+  const [selectedDeploymentLogs, setSelectedDeploymentLogs] = useState<{ deploymentId: string; deploymentName: string; logs: LogEntry[] } | null>(null);
+  const [deploymentLogs, setDeploymentLogs] = useState<Record<string, LogEntry[]>>({});
 
   useEffect(() => {
     loadDeployments();
   }, []);
+
+  const formatDateTime = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
+
+  const generateDeploymentLogs = (deployment: Deployment): LogEntry[] => {
+    const logs: LogEntry[] = [];
+    const createdAt = new Date(deployment.createdAt);
+    
+    logs.push({
+      timestamp: formatDateTime(createdAt),
+      level: 'info',
+      message: `开始部署: ${deployment.name} (版本: ${deployment.version})`
+    });
+    
+    logs.push({
+      timestamp: formatDateTime(new Date(createdAt.getTime() + 1000)),
+      level: 'info',
+      message: '检查部署环境...'
+    });
+    
+    logs.push({
+      timestamp: formatDateTime(new Date(createdAt.getTime() + 2000)),
+      level: 'info',
+      message: '环境检查通过'
+    });
+    
+    logs.push({
+      timestamp: formatDateTime(new Date(createdAt.getTime() + 3000)),
+      level: 'info',
+      message: '下载部署包...'
+    });
+    
+    if (deployment.status === 'success') {
+      logs.push({
+        timestamp: formatDateTime(new Date(createdAt.getTime() + 5000)),
+        level: 'success',
+        message: '部署包下载完成'
+      });
+      logs.push({
+        timestamp: formatDateTime(new Date(createdAt.getTime() + 6000)),
+        level: 'info',
+        message: '执行部署脚本...'
+      });
+      logs.push({
+        timestamp: formatDateTime(new Date(createdAt.getTime() + 8000)),
+        level: 'success',
+        message: '部署脚本执行成功'
+      });
+      if (deployment.completedAt) {
+        logs.push({
+          timestamp: formatDateTime(new Date(deployment.completedAt)),
+          level: 'success',
+          message: '部署完成！所有服务已启动'
+        });
+      }
+    } else if (deployment.status === 'failed') {
+      logs.push({
+        timestamp: formatDateTime(new Date(createdAt.getTime() + 5000)),
+        level: 'error',
+        message: '部署包下载失败: 网络连接超时'
+      });
+      logs.push({
+        timestamp: formatDateTime(new Date(createdAt.getTime() + 6000)),
+        level: 'warning',
+        message: '尝试重试下载...'
+      });
+      if (deployment.completedAt) {
+        logs.push({
+          timestamp: formatDateTime(new Date(deployment.completedAt)),
+          level: 'error',
+          message: '部署失败: 无法连接到部署服务器'
+        });
+      }
+    } else if (deployment.status === 'deploying') {
+      logs.push({
+        timestamp: formatDateTime(new Date(createdAt.getTime() + 5000)),
+        level: 'info',
+        message: '部署包下载中... (65%)'
+      });
+      logs.push({
+        timestamp: formatDateTime(new Date(createdAt.getTime() + 6000)),
+        level: 'info',
+        message: '正在执行部署脚本...'
+      });
+    }
+    
+    return logs;
+  };
 
   const loadDeployments = () => {
     // 模拟数据
@@ -48,6 +151,245 @@ export function SystemDeployment() {
       },
     ];
     setDeployments(mockDeployments);
+    
+    // 为每个部署生成日志
+    const logs: Record<string, LogEntry[]> = {};
+    mockDeployments.forEach(deployment => {
+      logs[deployment.id] = generateDeploymentLogs(deployment);
+    });
+    setDeploymentLogs(logs);
+  };
+
+  const handleRefresh = () => {
+    loadDeployments();
+    console.log('刷新部署状态');
+  };
+
+  const handleViewLogs = (deploymentId: string) => {
+    const deployment = deployments.find(d => d.id === deploymentId);
+    if (!deployment) return;
+    
+    const logs = deploymentLogs[deploymentId] || [];
+    setSelectedDeploymentLogs({
+      deploymentId,
+      deploymentName: deployment.name,
+      logs
+    });
+  };
+
+  const handleStartDeployment = () => {
+    if (isDeploying) {
+      // 停止部署
+      setIsDeploying(false);
+      // 停止所有正在部署的任务
+      setDeployments(prev => prev.map(d => 
+        d.status === 'deploying' 
+          ? { ...d, status: 'pending' as const, progress: undefined }
+          : d
+      ));
+      return;
+    }
+
+    // 检查部署配置 - 从页面获取选中的环境和版本
+    // 这里简化处理，直接使用默认值
+    const environment = '生产环境';
+    const version = 'v2.0.2';
+
+    if (confirm(`确定要在 ${environment} 环境部署版本 ${version} 吗？`)) {
+      setIsDeploying(true);
+      
+      // 创建新的部署任务
+      const newDeployment: Deployment = {
+        id: `deploy-${Date.now()}`,
+        name: `${environment}部署`,
+        version: version,
+        status: 'deploying',
+        createdAt: new Date().toISOString(),
+        progress: 0,
+      };
+
+      setDeployments(prev => [newDeployment, ...prev]);
+
+      // 生成初始日志
+      const initialLogs: LogEntry[] = [{
+        timestamp: formatDateTime(new Date()),
+        level: 'info',
+        message: `开始部署: ${newDeployment.name} (版本: ${newDeployment.version})`
+      }];
+      setDeploymentLogs(prev => ({
+        ...prev,
+        [newDeployment.id]: initialLogs
+      }));
+
+      // 模拟部署过程
+      let progress = 0;
+      const progressInterval = setInterval(() => {
+        setDeployments(currentDeployments => {
+          const currentDeployment = currentDeployments.find(d => d.id === newDeployment.id);
+          if (!currentDeployment || currentDeployment.status !== 'deploying') {
+            clearInterval(progressInterval);
+            return currentDeployments;
+          }
+          return currentDeployments;
+        });
+
+        progress += 5;
+        if (progress <= 100) {
+          setDeployments(prev => prev.map(d => 
+            d.id === newDeployment.id ? { ...d, progress } : d
+          ));
+
+          const currentTime = new Date();
+          setDeploymentLogs(prev => {
+            const existingLogs = prev[newDeployment.id] || [];
+            const newLog = {
+              timestamp: formatDateTime(currentTime),
+              level: 'info' as const,
+              message: `部署进度: ${progress}%`
+            };
+            return {
+              ...prev,
+              [newDeployment.id]: [...existingLogs, newLog]
+            };
+          });
+        } else {
+          clearInterval(progressInterval);
+          // 部署完成
+          const completedAt = new Date();
+          setDeployments(prev => prev.map(d => 
+            d.id === newDeployment.id 
+              ? { 
+                  ...d, 
+                  status: 'success' as const,
+                  completedAt: completedAt.toISOString(),
+                  progress: undefined
+                }
+              : d
+          ));
+          setDeploymentLogs(prev => {
+            const existingLogs = prev[newDeployment.id] || [];
+            return {
+              ...prev,
+              [newDeployment.id]: [
+                ...existingLogs,
+                {
+                  timestamp: formatDateTime(completedAt),
+                  level: 'success' as const,
+                  message: '部署完成！所有服务已启动'
+                }
+              ]
+            };
+          });
+          setIsDeploying(false);
+        }
+      }, 300);
+    }
+  };
+
+  const handleRedeploy = (deploymentId: string) => {
+    const deployment = deployments.find(d => d.id === deploymentId);
+    if (!deployment) return;
+
+    if (confirm(`确定要重新部署 "${deployment.name}" (版本: ${deployment.version}) 吗？`)) {
+      // 更新部署状态为部署中
+      setDeployments(prev => prev.map(d => 
+        d.id === deploymentId 
+          ? { 
+              ...d, 
+              status: 'deploying' as const, 
+              progress: 0,
+              createdAt: new Date().toISOString(),
+              completedAt: undefined
+            }
+          : d
+      ));
+
+      // 生成新的日志
+      const newLogs: LogEntry[] = [];
+      const now = new Date();
+      newLogs.push({
+        timestamp: formatDateTime(now),
+        level: 'info',
+        message: `开始重新部署: ${deployment.name} (版本: ${deployment.version})`
+      });
+      setDeploymentLogs(prev => ({
+        ...prev,
+        [deploymentId]: newLogs
+      }));
+
+      // 模拟部署过程
+      let progress = 0;
+      const progressInterval = setInterval(() => {
+        progress += 10;
+        if (progress <= 100) {
+          setDeployments(prev => prev.map(d => 
+            d.id === deploymentId ? { ...d, progress } : d
+          ));
+
+          const currentTime = new Date();
+          setDeploymentLogs(prev => {
+            const existingLogs = prev[deploymentId] || [];
+            const newLog = {
+              timestamp: formatDateTime(currentTime),
+              level: 'info' as const,
+              message: `部署进度: ${progress}%`
+            };
+            return {
+              ...prev,
+              [deploymentId]: [...existingLogs, newLog]
+            };
+          });
+        } else {
+          clearInterval(progressInterval);
+          // 部署完成
+          const completedAt = new Date();
+          setDeployments(prev => prev.map(d => 
+            d.id === deploymentId 
+              ? { 
+                  ...d, 
+                  status: 'success' as const,
+                  completedAt: completedAt.toISOString(),
+                  progress: undefined
+                }
+              : d
+          ));
+          setDeploymentLogs(prev => {
+            const existingLogs = prev[deploymentId] || [];
+            return {
+              ...prev,
+              [deploymentId]: [
+                ...existingLogs,
+                {
+                  timestamp: formatDateTime(completedAt),
+                  level: 'success' as const,
+                  message: '部署完成！所有服务已启动'
+                }
+              ]
+            };
+          });
+        }
+      }, 500);
+    }
+  };
+
+  const getLogLevelColor = (level: string) => {
+    switch (level) {
+      case 'success':
+        return 'text-green-400';
+      case 'error':
+        return 'text-red-400';
+      case 'warning':
+        return 'text-yellow-400';
+      default:
+        return 'text-blue-400';
+    }
+  };
+
+  const handleStopDeployment = (deploymentId: string) => {
+    setDeployments(prev => prev.map(d => 
+      d.id === deploymentId ? { ...d, status: 'pending' as const, progress: undefined } : d
+    ));
+    console.log(`停止部署: ${deploymentId}`);
   };
 
   const getStatusIcon = (status: string) => {
@@ -98,7 +440,7 @@ export function SystemDeployment() {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => setIsDeploying(!isDeploying)}
+            onClick={handleStartDeployment}
             className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 ${
               isDeploying
                 ? 'bg-red-600 text-white hover:bg-red-700'
@@ -117,7 +459,7 @@ export function SystemDeployment() {
               </>
             )}
           </button>
-          <button className="px-4 py-2 border-2 border-gray-300 rounded-xl hover:bg-gray-50 transition-all flex items-center gap-2">
+          <button onClick={handleRefresh} className="px-4 py-2 border-2 border-gray-300 rounded-xl hover:bg-gray-50 transition-all flex items-center gap-2">
             <RefreshCw className="w-4 h-4" />
             刷新状态
           </button>
@@ -189,11 +531,17 @@ export function SystemDeployment() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <button className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all">
+                <button 
+                  onClick={() => handleViewLogs(deployment.id)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all"
+                >
                   查看日志
                 </button>
                 {deployment.status === 'failed' && (
-                  <button className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all">
+                  <button 
+                    onClick={() => handleRedeploy(deployment.id)}
+                    className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all"
+                  >
                     重新部署
                   </button>
                 )}
@@ -248,6 +596,51 @@ export function SystemDeployment() {
           </div>
         </div>
       </div>
+
+      {/* 部署日志模态框 */}
+      {selectedDeploymentLogs && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setSelectedDeploymentLogs(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h3 className="text-xl font-semibold">{selectedDeploymentLogs.deploymentName} - 部署日志</h3>
+                <p className="text-sm text-gray-500 mt-1">共 {selectedDeploymentLogs.logs.length} 条日志记录</p>
+              </div>
+              <button
+                onClick={() => setSelectedDeploymentLogs(null)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="bg-gray-900 text-green-400 font-mono text-sm p-4 rounded-lg">
+                <div className="space-y-1">
+                  {selectedDeploymentLogs.logs.length === 0 ? (
+                    <div className="text-gray-500">该部署暂无日志记录</div>
+                  ) : (
+                    selectedDeploymentLogs.logs.map((log, index) => (
+                      <div key={index} className={`${getLogLevelColor(log.level)}`}>
+                        <span className="text-gray-500">[{log.timestamp}]</span>{' '}
+                        <span className="font-semibold">[{log.level.toUpperCase()}]</span>{' '}
+                        {log.message}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={() => setSelectedDeploymentLogs(null)}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all"
+              >
+                关闭
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

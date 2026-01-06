@@ -3,7 +3,10 @@
  * 用于实时监控和消息推送
  */
 
-const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:8000';
+// 在开发模式下使用相对路径（走vite代理），在生产模式下使用环境变量
+const WS_BASE_URL = import.meta.env.DEV
+  ? '' // 开发模式：使用相对路径，走vite代理
+  : (import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:8000');
 
 class WebSocketManager {
   private ws: WebSocket | null = null;
@@ -27,8 +30,18 @@ class WebSocketManager {
     this.errorHandler = onError || (() => {});
 
     try {
-      // 后端WebSocket路径是 /ws/test-tasks/{task_id}
-      const wsUrl = `${WS_BASE_URL}/ws/test-tasks/${taskId}`;
+      // 构建WebSocket URL
+      let wsUrl: string;
+      if (WS_BASE_URL) {
+        // 生产模式：使用环境变量
+        wsUrl = `${WS_BASE_URL}/ws/test-tasks/${taskId}`;
+      } else {
+        // 开发模式：使用相对路径，走vite代理
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host;
+        wsUrl = `${protocol}//${host}/ws/test-tasks/${taskId}`;
+      }
+      
       this.ws = new WebSocket(wsUrl);
 
       this.ws.onopen = () => {
@@ -110,4 +123,3 @@ class WebSocketManager {
 // 导出单例
 const wsManager = new WebSocketManager();
 export default wsManager;
-

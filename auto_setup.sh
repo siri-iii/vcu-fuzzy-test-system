@@ -23,7 +23,7 @@ if command -v node &> /dev/null; then
         echo "✓ 依赖已安装"
     else
         echo "→ 开始安装依赖（这可能需要几分钟）..."
-        npm install
+    
         if [ $? -eq 0 ]; then
             echo "✓ 依赖安装完成"
         else

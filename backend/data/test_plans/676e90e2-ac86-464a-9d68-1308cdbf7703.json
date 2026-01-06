@@ -1,0 +1,36 @@
+{
+  "id": "676e90e2-ac86-464a-9d68-1308cdbf7703",
+  "name": "111",
+  "description": "hhhh",
+  "test_mode": "both",
+  "traditional_config": {
+    "enabled": true,
+    "mutation_rules": [
+      "single_param",
+      "multi_param",
+      "timing_perturb",
+      "repeat"
+    ],
+    "intensity": 5,
+    "max_cases": 100
+  },
+  "gan_config": {
+    "enabled": true,
+    "model_version": "v1.0",
+    "sampling_temperature": 1.0,
+    "max_cases": 50
+  },
+  "constraint_config": {
+    "dbc_file_path": null,
+    "whitelist": [],
+    "blacklist": [],
+    "value_ranges": {},
+    "rate_limit": 100.0,
+    "crc_check": true,
+    "dlc_check": true
+  },
+  "baseline_log_path": null,
+  "created_at": "2026-01-04T19:20:19.498487",
+  "updated_at": "2026-01-04T19:20:19.498487",
+  "status": "draft"
+}

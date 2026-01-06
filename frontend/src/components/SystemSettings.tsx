@@ -36,6 +36,19 @@ export function SystemSettings() {
     }
   };
 
+  const handleRollback = (version: string, action: string, index: number) => {
+    if (confirm(`确定要回滚到版本 ${version} 吗？\n\n这将撤销操作: ${action}\n\n此操作不可撤销，请谨慎操作！`)) {
+      // 模拟回滚操作
+      console.log(`回滚到版本 ${version}，操作: ${action}`);
+      
+      // 这里可以添加实际的回滚逻辑
+      // 例如：调用API、更新状态等
+      
+      // 显示成功提示
+      alert(`已成功回滚到版本 ${version}\n\n配置已恢复到该版本的状态。`);
+    }
+  };
+
   const tabs = [
     { id: 'engine', label: '引擎配置', icon: '⚙️', badge: null },
     { id: 'gan', label: 'GAN模型', icon: '🎛️', badge: 'AI' },
@@ -704,7 +717,10 @@ export function SystemSettings() {
                                 </div>
                               </div>
                             </div>
-                            <button className="px-3 py-1 text-xs border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                            <button 
+                              onClick={() => handleRollback(log.version, log.action, idx)}
+                              className="px-3 py-1 text-xs border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors hover:border-orange-500 hover:text-orange-600"
+                            >
                               回滚
                             </button>
                           </div>

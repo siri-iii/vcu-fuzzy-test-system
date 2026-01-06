@@ -173,9 +173,20 @@ export function TestManagement({ onViewMonitoring }: TestManagementProps) {
         .map((task: any) => {
         const plan = plansData.find((p: any) => p.id === task.plan_id);
         
-        // 计算进度（基于total_cases，假设目标1000）
-        const targetCases = 1000;
-        const progress = task.total_cases ? Math.min(100, Math.round((task.total_cases / targetCases) * 100)) : 0;
+        // 计算进度
+        // 如果任务已完成，进度应该是100%
+        // 如果任务正在运行，基于total_cases计算进度
+        let progress = 0;
+        if (task.status === 'completed') {
+          progress = 100;
+        } else if (task.status === 'running' || task.status === 'paused') {
+          // 对于运行中的任务，基于total_cases计算进度（假设目标1000）
+          const targetCases = 1000;
+          progress = task.total_cases ? Math.min(100, Math.round((task.total_cases / targetCases) * 100)) : 0;
+        } else {
+          // 待执行或已停止的任务，进度为0
+          progress = 0;
+        }
         
         // 计算覆盖率（基于统计数据，这里简化处理）
         const totalCases = task.total_cases || 0;

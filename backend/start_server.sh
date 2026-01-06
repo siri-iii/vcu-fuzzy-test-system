@@ -37,6 +37,20 @@ else
     echo "⚠️  数据库文件不存在，首次运行将自动创建"
 fi
 
+# 初始化演示数据（在启动服务器之前）
+echo ""
+echo "=========================================="
+echo "  初始化演示数据..."
+echo "=========================================="
+echo ""
+if [ -f "init_demo_data.py" ]; then
+    echo "运行 init_demo_data.py..."
+    python3 init_demo_data.py
+    echo "✓ 演示数据初始化完成"
+else
+    echo "⚠️  init_demo_data.py 文件不存在，跳过数据初始化"
+fi
+
 # 启动服务
 echo ""
 echo "=========================================="

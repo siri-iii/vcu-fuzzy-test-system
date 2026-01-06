@@ -14,10 +14,18 @@ service = ReportService()
 @router.post("/test-tasks/{task_id}/report", response_model=TestReportResponse)
 async def generate_report(task_id: str, request: Optional[TestReportRequest] = None):
     """
-    生成测试报告
+    生成测试报告（详细报告，包含异常分析）
     """
+    # 如果没有提供请求体，创建默认请求，确保包含详细分析
     if not request:
-        request = TestReportRequest(task_id=task_id)
+        request = TestReportRequest(
+            task_id=task_id,
+            format="pdf",
+            include_comparison=True  # 确保包含对比分析
+        )
+    else:
+        # 如果提供了请求体，确保task_id与路径参数一致
+        request.task_id = task_id
     
     try:
         report = await service.generate_report(request)

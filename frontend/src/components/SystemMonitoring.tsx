@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Monitor, Activity, Cpu, HardDrive, Wifi, AlertTriangle } from 'lucide-react';
+import { Monitor, Activity, Cpu, HardDrive, Wifi, AlertTriangle, X } from 'lucide-react';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface SystemMetric {
@@ -10,6 +10,16 @@ interface SystemMetric {
   network: number;
 }
 
+interface AlertSettings {
+  cpuThreshold: number;
+  memoryThreshold: number;
+  diskThreshold: number;
+  networkThreshold: number;
+  emailNotification: boolean;
+  smsNotification: boolean;
+  alertInterval: number;
+}
+
 export function SystemMonitoring() {
   const [metrics, setMetrics] = useState<SystemMetric[]>([]);
   const [currentMetrics, setCurrentMetrics] = useState({
@@ -17,6 +27,16 @@ export function SystemMonitoring() {
     memory: 62,
     disk: 38,
     network: 1250,
+  });
+  const [showAlertSettings, setShowAlertSettings] = useState(false);
+  const [alertSettings, setAlertSettings] = useState<AlertSettings>({
+    cpuThreshold: 80,
+    memoryThreshold: 85,
+    diskThreshold: 90,
+    networkThreshold: 2000,
+    emailNotification: true,
+    smsNotification: false,
+    alertInterval: 5,
   });
 
   useEffect(() => {
@@ -50,6 +70,20 @@ export function SystemMonitoring() {
     return () => clearInterval(interval);
   }, []);
 
+  const handleAlertSettings = () => {
+    setShowAlertSettings(true);
+  };
+
+  const handleSaveAlertSettings = () => {
+    console.log('保存告警设置', alertSettings);
+    setShowAlertSettings(false);
+    // 这里可以添加保存到后端的逻辑
+  };
+
+  const handleCloseAlertSettings = () => {
+    setShowAlertSettings(false);
+  };
+
   return (
     <div className="p-6 mt-[56px]">
       <div className="flex items-center justify-between mb-6">
@@ -58,7 +92,7 @@ export function SystemMonitoring() {
           <p className="text-sm text-gray-500">实时监控 · 性能指标 · 资源使用</p>
         </div>
         <div className="flex gap-2">
-          <button className="px-4 py-2 border-2 border-gray-300 rounded-xl hover:bg-gray-50 transition-all flex items-center gap-2">
+          <button onClick={handleAlertSettings} className="px-4 py-2 border-2 border-gray-300 rounded-xl hover:bg-gray-50 transition-all flex items-center gap-2">
             <AlertTriangle className="w-4 h-4" />
             告警设置
           </button>
@@ -158,24 +192,148 @@ export function SystemMonitoring() {
         </div>
       </div>
 
-      {/* 系统信息 */}
-      <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-        <h3 className="text-lg font-semibold mb-4">系统信息</h3>
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <div className="text-sm text-gray-600 mb-1">操作系统</div>
-            <div className="font-medium">macOS 25.1.0</div>
-          </div>
-          <div>
-            <div className="text-sm text-gray-600 mb-1">Python版本</div>
-            <div className="font-medium">Python 3.x</div>
-          </div>
-          <div>
-            <div className="text-sm text-gray-600 mb-1">Node.js版本</div>
-            <div className="font-medium">v24.12.0</div>
+      {/* 告警设置模态框 */}
+      {showAlertSettings && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={handleCloseAlertSettings}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h3 className="text-xl font-semibold">告警设置</h3>
+                <p className="text-sm text-gray-500 mt-1">配置系统资源监控告警阈值和通知方式</p>
+              </div>
+              <button
+                onClick={handleCloseAlertSettings}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-6">
+                {/* CPU告警阈值 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    CPU使用率告警阈值 (%)
+                  </label>
+                  <input
+                    type="number"
+                    value={alertSettings.cpuThreshold}
+                    onChange={(e) => setAlertSettings({ ...alertSettings, cpuThreshold: parseInt(e.target.value) || 0 })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    min="0"
+                    max="100"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">当CPU使用率超过此值时触发告警</p>
+                </div>
+
+                {/* 内存告警阈值 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    内存使用率告警阈值 (%)
+                  </label>
+                  <input
+                    type="number"
+                    value={alertSettings.memoryThreshold}
+                    onChange={(e) => setAlertSettings({ ...alertSettings, memoryThreshold: parseInt(e.target.value) || 0 })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    min="0"
+                    max="100"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">当内存使用率超过此值时触发告警</p>
+                </div>
+
+                {/* 磁盘告警阈值 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    磁盘使用率告警阈值 (%)
+                  </label>
+                  <input
+                    type="number"
+                    value={alertSettings.diskThreshold}
+                    onChange={(e) => setAlertSettings({ ...alertSettings, diskThreshold: parseInt(e.target.value) || 0 })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    min="0"
+                    max="100"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">当磁盘使用率超过此值时触发告警</p>
+                </div>
+
+                {/* 网络流量告警阈值 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    网络流量告警阈值 (MB/s)
+                  </label>
+                  <input
+                    type="number"
+                    value={alertSettings.networkThreshold}
+                    onChange={(e) => setAlertSettings({ ...alertSettings, networkThreshold: parseInt(e.target.value) || 0 })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    min="0"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">当网络流量超过此值时触发告警</p>
+                </div>
+
+                {/* 告警间隔 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    告警间隔 (分钟)
+                  </label>
+                  <input
+                    type="number"
+                    value={alertSettings.alertInterval}
+                    onChange={(e) => setAlertSettings({ ...alertSettings, alertInterval: parseInt(e.target.value) || 0 })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    min="1"
+                    max="60"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">相同告警的最小间隔时间，避免频繁通知</p>
+                </div>
+
+                {/* 通知方式 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    通知方式
+                  </label>
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={alertSettings.emailNotification}
+                        onChange={(e) => setAlertSettings({ ...alertSettings, emailNotification: e.target.checked })}
+                        className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                      />
+                      <span className="text-sm text-gray-700">邮件通知</span>
+                    </label>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={alertSettings.smsNotification}
+                        onChange={(e) => setAlertSettings({ ...alertSettings, smsNotification: e.target.checked })}
+                        className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                      />
+                      <span className="text-sm text-gray-700">短信通知</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={handleCloseAlertSettings}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSaveAlertSettings}
+                className="px-4 py-2 bg-orange-600 text-white hover:bg-orange-700 rounded-lg transition-all"
+              >
+                保存设置
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
